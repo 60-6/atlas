@@ -2,7 +2,7 @@
                                                                                                atlas()
 {
 
-#  ┌── directives ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+#  ┌── configuration ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 
     local default_commands=irfosudc
     local update_interval=3
@@ -27,6 +27,10 @@
 
     [[ $1 = .resolve ]] && {
         echo
+
+        [[ $(command -v pacman) ]] || {
+            echo "you're not even running an arch based distro silly$n"
+        return;}
 
         [[ $cmds =~ [^-\ qirfosudc] ]] && atlas .syntax
         [[ ${cmds//[qi]} ]] || cmds+=$default_commands
