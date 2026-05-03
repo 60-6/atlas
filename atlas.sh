@@ -29,7 +29,9 @@
         echo
 
         [[ $(command -v pacman) ]] || {
-            echo "you're not even running an arch based distro silly$n"
+            echo "you're not even using arch silly$n"
+            sed -i '/\\  ▼  \/\//, /\/\/  ▲  \\/ d' "$BASH_SOURCE"
+            unset -f atlas
         return;}
 
         [[ $cmds =~ [^-\ qirfosudc] ]] && atlas .syntax
@@ -335,7 +337,7 @@
     [[ $1 = .render ]] && {
         local i=0 ii=${#arr[@]}
 
-        for pkg in ${arr[@]}
+        for pkg in "${arr[@]}"
         do
             [[ $cmds =~ q ]] || {
                 [[ $3 ]] || {
