@@ -41,7 +41,9 @@
 
         atlas .scan $cmds
         for i in $(fold -w1 <<< $cmds)
-        do atlas .$i
+        do
+            atlas .scan $i
+            atlas .$i
         done
 
         atlas .sig
@@ -87,8 +89,6 @@
 #  ┌── operations ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 
     [[ $1 = .r ]] && {
-        atlas .scan r
-
         echo "${bold}root (${#root[@]})$reset"
         local -n arr=root
         local -n assoca=lineage
@@ -96,8 +96,6 @@
     }
 
     [[ $1 = .f ]] && {
-        atlas .scan f
-
         [[ $flatpaks ]] || {
             [[ $cmds =~ i ]] || echo "${dim}flatpaks: nil$reset$n"
         return;}
@@ -109,8 +107,6 @@
     }
 
     [[ $1 = .o ]] && {
-        atlas .scan o
-
         [[ $orphans ]] || {
             [[ $cmds =~ i ]] || echo "${dim}orphans: nil$reset$n"
         return;}
@@ -122,8 +118,6 @@
     }
 
     [[ $1 = .s ]] && {
-        atlas .scan s
-
         declare -gA save
 
         save[root]=$(printf "%s$n" "${root[@]}")
@@ -140,12 +134,9 @@
         atlas .await - -
 
         [[ ${REPLY,,} = y ]] && {
-            [[ $(command -v yay) ]] && {
-                yay
-            :;} || {
-                [[ $(command -v paru) ]] && {
-                    paru
-                :;} || sudo pacman -Syu
+            [[ $(command -v yay) ]] && { yay ;:;} || {
+                [[ $(command -v paru) ]] && { paru ;:;} ||
+                    sudo pacman -Syu
             }
 
             [[ $(command -v flatpak) ]] && {
@@ -162,8 +153,6 @@
         [[ ${save[@]} ]] || {
             echo "${dim}no save found$reset$n"
         return;}
-
-        atlas .scan d
 
         for i in root flatpaks orphans
         do
@@ -184,8 +173,6 @@
     }
 
     [[ $1 = .c ]] && {
-        atlas .scan o
-
         [[ $orphans ]] && {
             echo -n "remove orphans? (y/${bold}n$reset) "
             atlas .await - -
@@ -238,8 +225,9 @@
 
     [[ $1 = .scan ]] && {
         [[ $2 =~ r ]] && set 0 $2e
+        [[ $2 =~ s ]] && set 0 $2rfo
+        [[ $2 =~ d && ${save[@]} ]] && set 0 $2rfo
         [[ $2 =~ c ]] && set 0 $2o
-        [[ $2 =~ [sd] ]] && set 0 $2rfo
         [[ $cmds =~ q ]] && set 0 ${2//e}
 
         {
@@ -335,7 +323,7 @@
     }
 
     [[ $1 = .render ]] && {
-        local i=0 ii=${#arr[@]}
+        local i=1 ii=${#arr[@]}
 
         for pkg in "${arr[@]}"
         do
@@ -343,13 +331,11 @@
                 [[ $3 ]] || {
                     [[ " ${assoca[@]} " =~ " $pkg " ]] && {
                         ((ii--))
-                        continue
-                    }
+                    continue;}
 
                     echo "$2│"
                 }
 
-                ((i++))
                 (( i == ii )) && {
                     pfx="└─ "
                     indent="   "
@@ -357,6 +343,8 @@
                     pfx="├─ "
                     indent="│  "
                 }
+
+                ((i++))
             }
 
             echo "$2$3$pfx$pkg$reset"
