@@ -183,12 +183,11 @@
         }
 
         csize=$(du -sh /var/cache/pacman/pkg/ 2>/dev/null | cut -f1)
+        [[ $csize ]] || csize="?"
 
-        [[ $csize ]] || {
-            [[ $cmds =~ i ]] || echo "${dim}cache directory not found$reset$n"
-        return;}
-
-        [[ $cmds =~ i ]] && (( $(numfmt --from=iec $csize) < $cache_limit<<30 )) && return
+        [[ $cmds =~ i ]] && {
+            [[ $csize = "?" ]] || (( $(numfmt --from=iec $csize) < $cache_limit<<30 )) && return
+        }
 
         echo -n "clear package cache [$csize]? (y/${bold}n$reset) "
         atlas .await - -
