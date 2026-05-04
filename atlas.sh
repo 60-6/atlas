@@ -26,7 +26,7 @@
 
         [[ $(command -v pacman) ]] || {
             echo "you're not even using arch silly$n"
-            sed -i '/\\  ▼  \/\//, /\/\/  ▲  \\/ d' "$BASH_SOURCE"
+            sed -i '/ \\\\  ▼  \/\/ /, / \/\/  ▲  \\\\ / d' "$BASH_SOURCE"
             unset -f atlas
         return;}
 
