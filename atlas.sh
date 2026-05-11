@@ -32,11 +32,8 @@ atlas() {
         local -A delta info modified null rlineage
 
         echo
-        atlas .signal 0
         atlas .resolve
-        atlas .signal 1
         atlas .dispatch
-        atlas .signal 0
         echo
 
     }
@@ -57,18 +54,22 @@ atlas() {
         [[ $cmds =~ [^-${mods[@]}${ops[@]}] ]] && atlas .error c
         [[ ${cmds//[-${mods[@]}]} ]] || cmds+=$default_commands
 
-        (( EUID == 0 )) || auth="sudo"
+        (( EUID == 0 )) || auth=sudo
 
     }
 
     [[ $1 = .dispatch ]] && {
 
+        atlas .signal 1
+
         atlas .scan "$cmds"
-        for i in $(fold -w1 <<< "$cmds")
+        for i in $(fold -w1 <<< $cmds)
         do
-            atlas .scan "$i"
+            atlas .scan $i
             atlas .$i
         done
+
+        atlas .signal 0
 
     }
 
@@ -108,20 +109,20 @@ atlas() {
         {
             mkdir -p "$save_path"
 
-            printf "%s$n" "${root[@]}" > "$save_path/root"
+            printf "%s$n" ${root[@]} > "$save_path/root"
             printf "%s$n" "${flatpaks[@]}" > "$save_path/flatpaks"
-            printf "%s$n" "${orphans[@]}" > "$save_path/orphans"
+            printf "%s$n" ${orphans[@]} > "$save_path/orphans"
         } 2>/dev/null
 
         [[ -w $save_path ]] && {
             [[ $cmds =~ i ]] || echo "${dim}saved$reset$n"
-        :;} || echo "${red}i couldn't save for some reason, check your save path$reset$n"
+        :;} || echo "${red}couldn't save for some reason, check your save path$reset$n"
 
     }
 
     [[ $1 = .u ]] && {
 
-        [[ $cmds =~ i && $(tac "$log_path" 2>/dev/null | grep -m1 "upgraded") > [$(date -d -${update_interval}days +%F)U ]] || {
+        [[ $cmds =~ i && $(tac "$log_path" 2>/dev/null | grep -m1 upgraded) > [$(date -d -${update_interval}days +%F)U ]] || {
             atlas .await 2 "scan for updates? (y/${bold}n$reset) "
 
             [[ ${REPLY,,} = y ]] && {
@@ -167,12 +168,12 @@ atlas() {
                     }
 
                     echo
-                :;} || {
-                    [[ $cmds =~ i ]] || echo "$dim$i difference: nil$reset$n"
                 }
             done
+
+            [[ $cmds =~ i || ${delta[@]} =~ [^\ ] ]] || echo "${dim}difference: nil$reset$n"
         :;} || {
-            echo "${red}i couldn't find a save file$reset$n"
+            echo "${red}couldn't find a save file$reset$n"
         }
 
     }
@@ -183,7 +184,7 @@ atlas() {
             atlas .await 2 "remove orphans? {${#orphans[@]}} (y/${bold}n$reset) "
 
             [[ ${REPLY,,} = y ]] && {
-                $auth pacman -Rns "${orphans[@]}"
+                $auth pacman -Rns ${orphans[@]}
                 echo
             }
         :;} || {
@@ -192,12 +193,10 @@ atlas() {
 
         csize=$(du -sh "$cache_path" 2>/dev/null | cut -f1)
 
-        {
-            [[ $csize ]] && (( $(numfmt --from=iec "$csize") > cache_limit<<30 )) || [[ ! $cmds =~ i ]]
-        } && {
-            [[ $csize ]] || csize="?"
+        ([[ $csize ]] && (( $(numfmt --from=iec $csize) > cache_limit<<30 ))) || [[ ! $cmds =~ i ]] && {
+            [[ $csize ]] || csize=?
 
-            atlas .await 2 "clear package cache {$csize}? (y/${bold}n$reset) "
+            atlas .await 2 "clear cache {$csize}? (y/${bold}n$reset) "
 
             [[ ${REPLY,,} = y ]] && {
                 yes | $auth pacman -Scc &>/dev/null
@@ -232,7 +231,7 @@ atlas() {
             trap '
                 atlas .pulse 0
                 atlas .signal 0
-                echo "$r$red⚠ atlas: terminated$reset$clear$n"
+                echo "$r$red⚠ atlas terminated$reset$clear$n"
                 kill -2 $$
             ' 2 15
         }
@@ -244,8 +243,7 @@ atlas() {
         local scmds=$2
 
         [[ $scmds =~ r && ! $cmds =~ q ]] && scmds+=R
-        [[ $scmds =~ s ]] && scmds+=rfo
-        [[ $scmds =~ d && -d $save_path ]] && scmds+=rfo
+        [[ $scmds =~ s || ($scmds =~ d && -d $save_path) ]] && scmds+=rfo
         [[ $scmds =~ c ]] && scmds+=o
 
         {
@@ -297,7 +295,7 @@ atlas() {
 
         (( stage )) || {
             echo -n "$r$clear"
-            kill "$pulse"
+            kill $pulse
             wait "$pulse"
         } 2>/dev/null
 
@@ -323,7 +321,7 @@ atlas() {
 
             while read pkg opt
             do [[ " ${root[@]} " =~ " $opt " ]] && rlineage[$pkg]+=\ $opt
-            done < <(LC_ALL=C pacman -Qi "${root[@]}" | awk '
+            done < <(LC_ALL=C pacman -Qi ${root[@]} | awk '
                 proceed && /^ / {
                     gsub(/^ +|:.*/, "")
                     print pkg, $0
@@ -349,7 +347,7 @@ atlas() {
         local xarrn=$2 arrn=$3 attr=$4 depth=$5
 
         local -n xarr=$xarrn arr=$arrn
-        local x=1 xx=${#xarr[@]}
+        local x xx=${#xarr[@]}
 
         for i in "${xarr[@]}"
         do
@@ -358,25 +356,16 @@ atlas() {
                     [[ " ${arr[@]} " =~ " $i " ]] && continue
                     echo "$attr│"
                     xx=$(grep -cvxFf <(printf "%s$n" ${arr[@]}) <(printf "%s$n" "${xarr[@]}"))
-                    read -t 0.01
                 }
 
-                (( x == xx )) && {
-                    pfx="└─ "
-                    indent="   "
-                } || {
-                    pfx="├─ "
-                    indent="│  "
-                }
-
-                ((x++))
-
+                (( ++x == xx )) && pfx="└─ " indent="   " || pfx="├─ " indent="│  "
                 children=( ${arr[$i]} )
+                read -t 0.006
             }
 
             echo "$attr$depth$pfx$i$reset"
 
-            atlas .render children "$arrn" "$attr" "$depth$indent$dim"
+            atlas .render children $arrn "$attr" "$depth$indent$dim"
         done
 
         [[ $depth ]] || echo
@@ -425,20 +414,24 @@ atlas() {
             echo "${bold}▼ atlas syntax$reset$n"
 
             echo "${bold}mods (${#mods[@]})$reset"
-            info[q]="quiet${s}output"
-            info[y]="auto${s}confirm"
-            info[i]="intelligent${s}mode"
+
+            info[q]=quiet${s}output
+            info[y]=auto${s}confirm
+            info[i]=intelligent${s}mode
+
             atlas .render mods info
 
             echo "${bold}ops (${#ops[@]})$reset"
-            info[r]="view${s}root"
-            info[f]="view${s}flatpaks"
-            info[o]="view${s}orphans"
-            info[s]="save${s}system${s}state"
-            info[u]="upgrade${s}system"
-            info[d]="view${s}difference"
-            info[c]="system${s}cleanup"
-            info[x]="erase${s}atlas"
+
+            info[r]=view${s}root
+            info[f]=view${s}flatpaks
+            info[o]=view${s}orphans
+            info[s]=save${s}system${s}state
+            info[u]=upgrade${s}system
+            info[d]=view${s}difference
+            info[c]=system${s}cleanup
+            info[x]=erase${s}atlas
+
             atlas .render ops info
         }
 
@@ -450,12 +443,12 @@ atlas() {
 
         {
             rm -r "$save_path"
-            grep -q ' //  ▲  \\\\ ' "$BASH_SOURCE" && sed -i '/ << A T L A S >> /, \| //  ▲  \\\\ | d' "$BASH_SOURCE"
+            grep -q ' //  ▲  \\\\ ' $BASH_SOURCE && sed -i '/ << A T L A S >> /, \| //  ▲  \\\\ | d' $BASH_SOURCE
         } 2>/dev/null
 
-        grep -q "atlas()" "$BASH_SOURCE" && {
+        grep -q "atlas()" $BASH_SOURCE && {
             echo "${red}i couldn't remove atlas from $BASH_SOURCE, do it yourself$reset$n"
-        :;} || echo "${dim}bye$reset$n"
+        } || echo "${dim}bye$reset$n"
 
         atlas .signal 0
         unset -f atlas
