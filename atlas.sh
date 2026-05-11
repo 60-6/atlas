@@ -2,7 +2,7 @@
 
 atlas() {
 
-#  ┌── configuration ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐  #
+#  ┌── configuration ─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 
     {
 
@@ -18,7 +18,7 @@ atlas() {
 
     }
 
-#  ├── execution ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤  #
+#  ├── execution ─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
     (( executing )) || {
 
@@ -26,10 +26,10 @@ atlas() {
 
         local hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[7G'
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
-        local n=$'\n' r=$'\r' s=$'\xc2\xa0'
+        local n=$'\n' r=$'\r'
 
         local auth children csize flatpaks i indent mods ops opt orphans pfx pkg pulse root scanned
-        local -A delta info modified null rlineage
+        local -A delta modified null rlineage
 
         echo
         atlas .resolve
@@ -38,7 +38,7 @@ atlas() {
 
     }
 
-#  ├── cortex ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤  #
+#  ├── cortex ────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
     [[ $1 = .resolve ]] && {
 
@@ -47,12 +47,9 @@ atlas() {
             atlas .suicide
         }
 
-        mods=( q y i )
-        ops=( r f o s u d c x )
-
         [[ $cmds =~ \? ]] && atlas .error s
-        [[ $cmds =~ [^-${mods[@]}${ops[@]}] ]] && atlas .error c
-        [[ ${cmds//[-${mods[@]}]} ]] || cmds+=$default_commands
+        [[ $cmds =~ [^qyirfosudcX] ]] && atlas .error c
+        [[ ${cmds//[qyi]} ]] || cmds+=$default_commands
 
         (( EUID == 0 )) || auth=sudo
 
@@ -73,7 +70,7 @@ atlas() {
 
     }
 
-#  ├── operations ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤  #
+#  ├── operations ────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
     [[ $1 = .r ]] && {
 
@@ -141,6 +138,8 @@ atlas() {
                     echo
                 }
             }
+
+            atlas .await 0
         }
 
     }
@@ -187,6 +186,8 @@ atlas() {
                 $auth pacman -Rns ${orphans[@]}
                 echo
             }
+
+            atlas .await 0
         :;} || {
             [[ $cmds =~ i ]] || echo "${dim}no orphans to remove$reset$n"
         }
@@ -203,19 +204,21 @@ atlas() {
                 csize=$(du -sh "$cache_path" 2>/dev/null | cut -f1)
                 [[ $csize ]] && echo "${dim}new cache size: $csize$reset$n"
             }
+
+            atlas .await 0
         }
 
     }
 
-    [[ $1 = .x ]] && {
+    [[ $1 = .X ]] && {
 
         atlas .await 2 "are you sure? (y/${bold}n$reset) "
 
-        [[ ${REPLY,,} = y ]] && atlas .suicide
+        [[ ${REPLY,,} = y ]] && atlas .suicide || echo "i'm flattered$n"
 
     }
 
-#  ├── engine ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤  #
+#  ├── engine ────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
     [[ $1 = .signal ]] && {
 
@@ -356,11 +359,11 @@ atlas() {
                     [[ " ${arr[@]} " =~ " $i " ]] && continue
                     echo "$attr│"
                     xx=$(grep -cvxFf <(printf "%s$n" ${arr[@]}) <(printf "%s$n" "${xarr[@]}"))
+                    read -t 0.0066
                 }
 
                 (( ++x == xx )) && pfx="└─ " indent="   " || pfx="├─ " indent="│  "
                 children=( ${arr[$i]} )
-                read -t 0.006
             }
 
             echo "$attr$depth$pfx$i$reset"
@@ -389,16 +392,14 @@ atlas() {
         (( stage > 1 )) && {
             [[ $cmds =~ y ]] && {
                 REPLY=y
-                atlas .await 0
             :;} || {
                 while read -t 0
                 do read
                 done
 
                 echo -n "$prompt"
-                read
-                echo
-                atlas .await 0
+                read -s -n 1
+                echo -n "$r$c"
             }
         }
 
@@ -408,33 +409,30 @@ atlas() {
 
         local mode=$2
 
-        [[ $mode = c ]] && echo "${red}not sure what you mean, run 'atlas ?' for syntax$reset$n"
+        [[ $mode = c ]] && echo "${red}not sure what you mean, run 'atlas ?' for syntax$reset"
 
         [[ $mode = s ]] && {
-            echo "${bold}▼ atlas syntax$reset$n"
-
-            echo "${bold}mods (${#mods[@]})$reset"
-
-            info[q]=quiet${s}output
-            info[y]=auto${s}confirm
-            info[i]=intelligent${s}mode
-
-            atlas .render mods info
-
-            echo "${bold}ops (${#ops[@]})$reset"
-
-            info[r]=view${s}root
-            info[f]=view${s}flatpaks
-            info[o]=view${s}orphans
-            info[s]=save${s}system${s}state
-            info[u]=upgrade${s}system
-            info[d]=view${s}difference
-            info[c]=system${s}cleanup
-            info[x]=erase${s}atlas
-
-            atlas .render ops info
+            echo  $bold  "▼ atlas syntax"
+            echo  $reset
+            echo         "  ┌── modifiers ──────────────┐"
+            echo         "  │ q  ·  quiet output        │"
+            echo         "  │ y  ·  auto confirm        │"
+            echo         "  │ i  ·  intelligent mode    │"
+            echo         "  └───────────────────────────┘"
+            echo
+            echo         "  ┌── operations ─────────────┐"
+            echo         "  │ r  ·  view root           │"
+            echo         "  │ f  ·  view flatpaks       │"
+            echo         "  │ o  ·  view orphans        │"
+            echo         "  │ s  ·  save system state   │"
+            echo         "  │ u  ·  upgrade system      │"
+            echo         "  │ d  ·  view difference     │"
+            echo         "  │ c  ·  system cleanup      │"
+            echo         "  │ X  ·  erase atlas         │"
+            echo         "  └───────────────────────────┘"
         }
 
+        echo
         kill -2 $$
 
     }
@@ -447,16 +445,18 @@ atlas() {
         } 2>/dev/null
 
         grep -q "atlas()" $BASH_SOURCE && {
-            echo "${red}i couldn't remove atlas from $BASH_SOURCE, do it yourself$reset$n"
-        } || echo "${dim}bye$reset$n"
+            echo "${red}i couldn't remove atlas from $BASH_SOURCE, do it yourself$reset"
+        :;} || echo "${dim}bye$reset"
 
         atlas .signal 0
         unset -f atlas
+
+        echo
         kill -2 $$
 
     }
 
-#  └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘  #
+#  └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 }
 
