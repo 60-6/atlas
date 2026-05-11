@@ -162,7 +162,7 @@ atlas() {
                     [[ ${delta[${i}0]} ]] && echo "$dim${delta[${i}0]}$reset"
 
                     [[ ${delta[${i}1]} ]] && {
-                        [[ $i = orphans ]] && echo -n "$red"
+                        [[ $i = orphans ]] && echo -n $red
                         echo "${delta[${i}1]}$reset"
                     }
 
@@ -215,6 +215,8 @@ atlas() {
         atlas .await 2 "are you sure? (y/${bold}n$reset) "
 
         [[ ${REPLY,,} = y ]] && atlas .suicide || echo "i'm flattered$n"
+
+        atlas .await 0
 
     }
 
@@ -297,7 +299,7 @@ atlas() {
         local stage=$2
 
         (( stage )) || {
-            echo -n "$r$clear"
+            echo -n $r$clear
             kill $pulse
             wait "$pulse"
         } 2>/dev/null
@@ -381,11 +383,11 @@ atlas() {
 
         (( stage )) || {
             stty -echo
-            echo -n "$hide"
+            echo -n $hide
         }
 
         (( stage )) && {
-            echo -n "$show"
+            echo -n $show
             stty echo </dev/tty
         }
 
@@ -399,7 +401,7 @@ atlas() {
 
                 echo -n "$prompt"
                 read -s -n 1
-                echo -n "$r$c"
+                echo -n $r$clear
             }
         }
 
