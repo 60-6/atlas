@@ -28,7 +28,7 @@ atlas() {
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
         local n=$'\n' r=$'\r'
 
-        local auth children csize flatpaks i indent mods ops opt orphans pfx pkg pulse root scanned
+        local auth children csize flatpaks i indent opt orphans pfx pkg pulse root scanned
         local -A delta modified null rlineage
 
         echo
@@ -48,8 +48,8 @@ atlas() {
         }
 
         [[ $cmds =~ \? ]] && atlas .error s
-        [[ $cmds =~ [^qyirfosudcX] ]] && atlas .error c
-        [[ ${cmds//[qyi]} ]] || cmds+=$default_commands
+        [[ $cmds =~ [^-qyirfosudcX] ]] && atlas .error c
+        [[ ${cmds//[-qyi]} ]] || cmds+=$default_commands
 
         (( EUID == 0 )) || auth=sudo
 
@@ -59,7 +59,7 @@ atlas() {
 
         atlas .signal 1
 
-        atlas .scan "$cmds"
+        atlas .scan $cmds
         for i in $(fold -w1 <<< $cmds)
         do
             atlas .scan $i
@@ -120,7 +120,7 @@ atlas() {
     [[ $1 = .u ]] && {
 
         [[ $cmds =~ i && $(tac "$log_path" 2>/dev/null | grep -m1 upgraded) > [$(date -d -${update_interval}days +%F)U ]] || {
-            atlas .await 2 "scan for updates? (y/${bold}n$reset) "
+            atlas .await 2 "scan for updates? {y/${bold}n$reset} "
 
             [[ ${REPLY,,} = y ]] && {
                 [[ $(command -v yay) ]] && {
@@ -157,7 +157,7 @@ atlas() {
                 } 2>/dev/null
 
                 [[ ${delta[${i}0]}${delta[${i}1]} ]] && {
-                    echo "$bold▼ $i difference$reset"
+                    echo "$bold▼ $i difference$reset$n"
 
                     [[ ${delta[${i}0]} ]] && echo "$dim${delta[${i}0]}$reset"
 
@@ -180,7 +180,7 @@ atlas() {
     [[ $1 = .c ]] && {
 
         [[ $orphans ]] && {
-            atlas .await 2 "remove orphans? {${#orphans[@]}} (y/${bold}n$reset) "
+            atlas .await 2 "remove orphans? (${#orphans[@]}) {y/${bold}n$reset} "
 
             [[ ${REPLY,,} = y ]] && {
                 $auth pacman -Rns ${orphans[@]}
@@ -197,7 +197,7 @@ atlas() {
         ([[ $csize ]] && (( $(numfmt --from=iec $csize) > cache_limit<<30 ))) || [[ ! $cmds =~ i ]] && {
             [[ $csize ]] || csize=?
 
-            atlas .await 2 "clear cache {$csize}? (y/${bold}n$reset) "
+            atlas .await 2 "clear cache ($csize)? {y/${bold}n$reset} "
 
             [[ ${REPLY,,} = y ]] && {
                 yes | $auth pacman -Scc &>/dev/null
@@ -212,7 +212,7 @@ atlas() {
 
     [[ $1 = .X ]] && {
 
-        atlas .await 2 "are you sure? (y/${bold}n$reset) "
+        atlas .await 2 "are you sure? {y/${bold}n$reset} "
 
         [[ ${REPLY,,} = y ]] && atlas .suicide || echo "i'm flattered$n"
 
@@ -279,7 +279,7 @@ atlas() {
 
             [[ $scmds =~ r ]] && {
                 echo -n "$origin${dim}atlas: scanning root…$reset$clear"
-                root=( $(grep -vxFf <(printf "%s$n" "${orphans[@]}") <(pacman -Qqtt)) )
+                root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
             }
 
             [[ $scmds =~ f ]] && {
@@ -287,7 +287,7 @@ atlas() {
                 mapfile -t flatpaks < <(flatpak list --app --columns=name)
             }
 
-            atlas .extract "$scmds"
+            atlas .extract $scmds
         } 2>/dev/null
 
         atlas .pulse 0
@@ -356,20 +356,22 @@ atlas() {
 
         for i in "${xarr[@]}"
         do
+            [[ ! $depth && " ${arr[@]} " =~ " $i " ]] && continue
+
             [[ $cmds =~ q ]] || {
                 [[ $depth ]] || {
-                    [[ " ${arr[@]} " =~ " $i " ]] && continue
+                    (( x )) || xx=$(grep -cvxFf <(printf "%s$n" ${arr[@]}) <(printf "%s$n" "${xarr[@]}"))
                     echo "$attr│"
-                    xx=$(grep -cvxFf <(printf "%s$n" ${arr[@]}) <(printf "%s$n" "${xarr[@]}"))
-                    read -t 0.0066
                 }
 
                 (( ++x == xx )) && pfx="└─ " indent="   " || pfx="├─ " indent="│  "
-                children=( ${arr[$i]} )
+
+                read -t 0.0066
             }
 
             echo "$attr$depth$pfx$i$reset"
 
+            children=( ${arr[$i]} )
             atlas .render children $arrn "$attr" "$depth$indent$dim"
         done
 
