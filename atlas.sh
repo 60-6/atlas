@@ -349,7 +349,7 @@ atlas() {
 
     [[ $1 = .render ]] && {
 
-        local xarrn=$2 arrn=$3 attr=$4 depth=$5
+        local xarrn=$2 arrn=$3 attr=$4 depth=$5 visited=$6
 
         local -n xarr=$xarrn arr=$arrn
         local x xx=${#xarr[@]}
@@ -371,8 +371,8 @@ atlas() {
 
             echo "$attr$depth$pfx$i$reset"
 
-            children=( ${arr[$i]} )
-            atlas .render children $arrn "$attr" "$depth$indent$dim"
+            children=( $(grep -vxFf <(echo "$visited") <(printf "%s$n" ${arr[$i]})) )
+            atlas .render children $arrn "$attr" "$depth$indent$dim" "$visited$n$i"
         done
 
         [[ $depth ]] || echo
@@ -386,12 +386,12 @@ atlas() {
         (( stage )) || {
             stty -echo
             echo -n $hide
-        }
+        } 2>/dev/null
 
         (( stage )) && {
             echo -n $show
             stty echo </dev/tty
-        }
+        } 2>/dev/null
 
         (( stage > 1 )) && {
             [[ $cmds =~ y ]] && {
