@@ -7,29 +7,24 @@ atlas() {
     {
 
         local default_commands=irfosudc
-        local update_interval=3
-        local cache_limit=5
-
-        local save_path=/tmp/atlas
-
-        local log_path=/var/log/pacman.log
-        local flatpak_path=/var/lib/flatpak
-        local cache_path=/var/cache/pacman/pkg
+        local save_path="/tmp/atlas"
+        local update_interval=6
+        local cache_limit=6
 
     }
 
 #  ├── execution ─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
-    (( executing )) || {
+    (( executing == 66 )) || {
 
-        local executing=1 cmds=$1
+        local executing=66 cmds=$1
 
         local hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[7G'
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
         local n=$'\n' r=$'\r'
 
-        local auth children csize flatpaks i indent opt orphans pfx pkg pulse root scanned
-        local -A delta modified null rlineage
+        local auth cache_path children flatpaks log_path orphans pulse root scanned
+        local -A modified nullarr rlineage
 
         echo
         atlas .resolve
@@ -42,7 +37,7 @@ atlas() {
 
     [[ $1 = .resolve ]] && {
 
-        [[ $(command -v pacman) ]] || {
+        pacman -Q base &>/dev/null || {
             echo "you're not even using arch silly$n"
             atlas .suicide
         }
@@ -51,11 +46,15 @@ atlas() {
         [[ $cmds =~ [^-qyirfosudcX] ]] && atlas .error c
         [[ ${cmds//[-qyi]} ]] || cmds+=$default_commands
 
-        (( EUID == 0 )) || auth=sudo
+        (( EUID )) && auth=sudo
+        log_path=$(pacman-conf LogFile)
+        cache_path=$(pacman-conf CacheDir)
 
     }
 
     [[ $1 = .dispatch ]] && {
+
+        local i
 
         atlas .signal 1
 
@@ -83,7 +82,7 @@ atlas() {
 
         [[ $flatpaks ]] && {
             echo "${bold}flatpaks (${#flatpaks[@]})$reset"
-            atlas .render flatpaks null
+            atlas .render flatpaks nullarr
         :;} || {
             [[ $cmds =~ i ]] || echo "${dim}flatpaks: nil$reset$n"
         }
@@ -94,7 +93,7 @@ atlas() {
 
         [[ $orphans ]] && {
             echo "$red${bold}orphans (${#orphans[@]})$reset"
-            atlas .render orphans null "$red"
+            atlas .render orphans nullarr "$red"
         :;} || {
             [[ $cmds =~ i ]] || echo "${dim}orphans: nil$reset$n"
         }
@@ -103,23 +102,19 @@ atlas() {
 
     [[ $1 = .s ]] && {
 
-        {
-            mkdir -p "$save_path"
-
+        mkdir -p "$save_path" && {
             printf "%s$n" ${root[@]} > "$save_path/root"
             printf "%s$n" "${flatpaks[@]}" > "$save_path/flatpaks"
             printf "%s$n" ${orphans[@]} > "$save_path/orphans"
-        } 2>/dev/null
 
-        [[ -w $save_path ]] && {
             [[ $cmds =~ i ]] || echo "${dim}saved$reset$n"
-        :;} || echo "${red}couldn't save for some reason, check your save path$reset$n"
+        :;} || echo "${red}that save path isn't right dummy$reset$n"
 
     }
 
     [[ $1 = .u ]] && {
 
-        [[ $cmds =~ i && $(tac "$log_path" 2>/dev/null | grep -m1 upgraded) > [$(date -d -${update_interval}days +%F)U ]] || {
+        [[ $cmds =~ i && $(tac "$log_path" | grep -m1 upgraded) > [$(date -d -${update_interval}days +%F)U ]] || {
             atlas .await 2 "scan for updates? {y/${bold}n$reset} "
 
             [[ ${REPLY,,} = y ]] && {
@@ -145,6 +140,9 @@ atlas() {
     }
 
     [[ $1 = .d ]] && {
+
+        local i
+        local -A delta
 
         [[ -d $save_path ]] && {
             for i in root flatpaks orphans
@@ -172,7 +170,7 @@ atlas() {
 
             [[ $cmds =~ i || ${delta[@]} =~ [^\ ] ]] || echo "${dim}difference: nil$reset$n"
         :;} || {
-            echo "${red}couldn't find a save file$reset$n"
+            echo "${red}you forgot to save…$reset$n"
         }
 
     }
@@ -192,17 +190,15 @@ atlas() {
             [[ $cmds =~ i ]] || echo "${dim}no orphans to remove$reset$n"
         }
 
-        csize=$(du -sh "$cache_path" 2>/dev/null | cut -f1)
+        local csize=$(du -sh "$cache_path" 2>/dev/null | cut -f1)
 
         ([[ $csize ]] && (( $(numfmt --from=iec $csize) > cache_limit<<30 ))) || [[ ! $cmds =~ i ]] && {
-            [[ $csize ]] || csize=?
-
             atlas .await 2 "clear cache ($csize)? {y/${bold}n$reset} "
 
             [[ ${REPLY,,} = y ]] && {
                 yes | $auth pacman -Scc &>/dev/null
                 csize=$(du -sh "$cache_path" 2>/dev/null | cut -f1)
-                [[ $csize ]] && echo "${dim}new cache size: $csize$reset$n"
+                echo "${dim}new cache size: $csize$reset$n"
             }
 
             atlas .await 0
@@ -251,10 +247,8 @@ atlas() {
         [[ $scmds =~ s || ($scmds =~ d && -d $save_path) ]] && scmds+=rfo
         [[ $scmds =~ c ]] && scmds+=o
 
-        {
-            modified[l1]=$(stat -c %Y "$log_path")
-            modified[f1]=$(stat -c %Y "$flatpak_path")
-        } 2>/dev/null
+        modified[l1]=$(stat -c %Y "$log_path")
+        modified[f1]=$(stat -c %Y /var/lib/flatpak 2>/dev/null)
 
         [[ ${modified[l0]} && ${modified[l0]} = ${modified[l1]} ]] || {
             scanned=${scanned//[roR]}
@@ -319,7 +313,7 @@ atlas() {
 
     [[ $1 = .extract ]] && {
 
-        local scmds=$2
+        local scmds=$2 pkg opt
 
         [[ $scmds =~ R ]] && {
             rlineage=()
@@ -343,16 +337,35 @@ atlas() {
                     proceed = 1
                 }
             ')
+
+            atlas .cycle "${!rlineage[*]}" rlineage
         }
+
+    }
+
+    [[ $1 = .cycle ]] && {
+
+        local list=$2 arrn=$3 last=$4 recursed=$5 i
+        local -n arr=$arrn
+
+        for i in $list
+        do
+            [[ " $recursed " =~ " $i " ]] && {
+                arr[$last]+=" "
+                arr[$last]=${arr[$last]/ $i / }
+                continue
+            }
+
+            atlas .cycle "${arr[$i]}" $arrn $i "$recursed $i"
+        done
 
     }
 
     [[ $1 = .render ]] && {
 
-        local xarrn=$2 arrn=$3 attr=$4 depth=$5 visited=$6
-
+        local xarrn=$2 arrn=$3 attr=$4 depth=$5 i x
         local -n xarr=$xarrn arr=$arrn
-        local x xx=${#xarr[@]}
+        local xx=${#xarr[@]}
 
         for i in "${xarr[@]}"
         do
@@ -364,15 +377,15 @@ atlas() {
                     echo "$attr│"
                 }
 
-                (( ++x == xx )) && pfx="└─ " indent="   " || pfx="├─ " indent="│  "
+                (( ++x == xx )) && local pfx="└─ " indent="   " || local pfx="├─ " indent="│  "
 
                 read -t 0.0066
             }
 
             echo "$attr$depth$pfx$i$reset"
 
-            children=( $(grep -vxFf <(echo "$visited") <(printf "%s$n" ${arr[$i]})) )
-            atlas .render children $arrn "$attr" "$depth$indent$dim" "$visited$n$i"
+            children=( ${arr[$i]} )
+            atlas .render children $arrn "$attr" "$depth$indent$dim"
         done
 
         [[ $depth ]] || echo
