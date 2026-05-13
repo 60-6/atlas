@@ -24,7 +24,7 @@ atlas() {
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
         local n=$'\n' r=$'\r'
 
-        local auth cache children flatpaks log orphans pulse root scanned
+        local agent auth cache children flatpaks log orphans pulse root scanned
         local -A modified nullarr rlineage
 
         echo
@@ -44,12 +44,11 @@ atlas() {
         }
 
         [[ $cmds =~ \? ]] && atlas .error s
-        [[ $cmds =~ [^-qyirfosudcX] ]] && atlas .error c
-        [[ ${cmds//[-qyi]} ]] || cmds+=$default_commands
+        [[ $cmds =~ [^qyirfosudcX] ]] && atlas .error c
+        [[ ${cmds//[qyi]} ]] || cmds+=$default_commands
 
-        log=$(pacman-conf LogFile)
-        cache=$(pacman-conf CacheDir)
         (( EUID )) && auth=sudo
+        log=$(pacman-conf LogFile) cache=$(pacman-conf CacheDir) agent=$(type -P yay || type -P paru || echo "$auth pacman")
 
     }
 
@@ -119,17 +118,10 @@ atlas() {
             atlas .await 2 "scan for updates? {y/${bold}n$reset} "
 
             [[ ${REPLY,} = y ]] && {
-                [[ $(command -v yay) ]] && {
-                    yay
-                :;} || {
-                    [[ $(command -v paru) ]] && {
-                        paru
-                    :;} || $auth pacman -Syu
-                }
-
+                $agent -Syu
                 echo
 
-                [[ $(command -v flatpak) ]] && {
+                [[ $(type -P flatpak) ]] && {
                     flatpak update && flatpak remove --unused
                     echo
                 }
@@ -223,11 +215,6 @@ atlas() {
 
         local stage=$2
 
-        (( stage )) || {
-            atlas .await 1
-            trap - 2 15
-        }
-
         (( stage )) && {
             atlas .await 0
             trap '
@@ -236,6 +223,9 @@ atlas() {
                 echo "$r$red⚠︎ atlas terminated$reset$clear$n"
                 kill -2 $$
             ' 2 15
+        :;} || {
+            atlas .await 1
+            trap - 2 15
         }
 
     }
@@ -251,12 +241,12 @@ atlas() {
         modified[l1]=$(stat -c %Y "$log")
         modified[f1]=$(stat -c %Y /var/lib/flatpak 2>/dev/null)
 
-        [[ ${modified[l0]} && ${modified[l0]} = ${modified[l1]} ]] || {
+        [[ ${modified[l0]} = ${modified[l1]} ]] || {
             scanned=${scanned//[roR]}
             modified[l0]=${modified[l1]}
         }
 
-        [[ ${modified[f0]} && ${modified[f0]} = ${modified[f1]} ]] || {
+        [[ ${modified[f0]} = ${modified[f1]} ]] || {
             scanned=${scanned//f}
             modified[f0]=${modified[f1]}
         }
@@ -296,12 +286,6 @@ atlas() {
 
         local stage=$2
 
-        (( stage )) || {
-            echo -n "$r$clear"
-            kill $pulse
-            wait "$pulse"
-        } 2>/dev/null
-
         (( stage )) && {
             while :
             do
@@ -311,6 +295,10 @@ atlas() {
                     sleep "0.0$delay_decimal"
                 done
             done &pulse=$!
+        :;} 2>/dev/null || {
+            echo -n "$r$clear"
+            kill $pulse
+            wait "$pulse"
         } 2>/dev/null
 
     }
@@ -399,14 +387,12 @@ atlas() {
 
         local stage=$2 prompt=$3
 
-        (( stage )) || {
-            stty -echo
-            echo -n "$hide"
-        } 2>/dev/null
-
         (( stage )) && {
             echo -n "$show"
             stty echo </dev/tty
+        :;} 2>/dev/null || {
+            stty -echo
+            echo -n "$hide"
         } 2>/dev/null
 
         (( stage > 1 )) && {
