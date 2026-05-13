@@ -160,7 +160,7 @@ atlas() {
                     [[ ${delta[${i}0]} ]] && echo "$dim${delta[${i}0]}$reset"
 
                     [[ ${delta[${i}1]} ]] && {
-                        [[ $i = orphans ]] && echo -n $red
+                        [[ $i = orphans ]] && echo -n "$red"
                         echo "${delta[${i}1]}$reset"
                     }
 
@@ -293,7 +293,7 @@ atlas() {
         local stage=$2
 
         (( stage )) || {
-            echo -n $r$clear
+            echo -n "$r$clear"
             kill $pulse
             wait "$pulse"
         } 2>/dev/null
@@ -397,11 +397,11 @@ atlas() {
 
         (( stage )) || {
             stty -echo
-            echo -n $hide
+            echo -n "$hide"
         } 2>/dev/null
 
         (( stage )) && {
-            echo -n $show
+            echo -n "$show"
             stty echo </dev/tty
         } 2>/dev/null
 
@@ -413,7 +413,7 @@ atlas() {
 
                 echo -n "$prompt"
                 read -s -n 1
-                echo -n $r$clear
+                echo -n "$r$clear"
             }
         }
 
@@ -426,24 +426,22 @@ atlas() {
         [[ $mode = c ]] && echo "${red}not sure what you mean, run 'atlas ?' for syntax$reset"
 
         [[ $mode = s ]] && {
-            echo  $bold  "▼ atlas syntax"
-            echo  $reset
-            echo         "  ┌── modifiers ──────────────┐"
-            echo         "  │ q  ·  quiet output        │"
-            echo         "  │ y  ·  auto confirm        │"
-            echo         "  │ i  ·  intelligent mode    │"
-            echo         "  └───────────────────────────┘"
-            echo
-            echo         "  ┌── operations ─────────────┐"
-            echo         "  │ r  ·  view root           │"
-            echo         "  │ f  ·  view flatpaks       │"
-            echo         "  │ o  ·  view orphans        │"
-            echo         "  │ s  ·  save system state   │"
-            echo         "  │ u  ·  upgrade system      │"
-            echo         "  │ d  ·  view difference     │"
-            echo         "  │ c  ·  system cleanup      │"
-            echo         "  │ X  ·  erase atlas         │"
-            echo         "  └───────────────────────────┘"
+            echo "$bold▼ atlas syntax$reset$n"
+            echo "  ┌── modifiers ──────────────┐"
+            echo "  │ q  ·  quiet output        │"
+            echo "  │ y  ·  auto confirm        │"
+            echo "  │ i  ·  intelligent mode    │"
+            echo "  └───────────────────────────┘$n"
+            echo "  ┌── operations ─────────────┐"
+            echo "  │ r  ·  view root           │"
+            echo "  │ f  ·  view flatpaks       │"
+            echo "  │ o  ·  view orphans        │"
+            echo "  │ s  ·  save system state   │"
+            echo "  │ u  ·  upgrade system      │"
+            echo "  │ d  ·  view difference     │"
+            echo "  │ c  ·  system cleanup      │"
+            echo "  │ X  ·  erase atlas         │"
+            echo "  └───────────────────────────┘"
         }
 
         echo
