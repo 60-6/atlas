@@ -269,16 +269,19 @@ atlas() {
             [[ $scmds =~ [ro] ]] && {
                 echo -n "$origin${dim}atlas: scanning orphans…$reset"
                 orphans=( $(pacman -Qqtd) )
+                [[ $cmds =~ q ]] || read -t 0.66
             }
 
             [[ $scmds =~ r ]] && {
                 echo -n "$origin${dim}atlas: scanning root…$reset$clear"
                 root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
+                [[ $cmds =~ q ]] || read -t 0.66
             }
 
             [[ $scmds =~ f ]] && {
                 echo -n "$origin${dim}atlas: scanning flatpaks…$reset$clear"
                 mapfile -t flatpaks < <(flatpak list --app --columns=name)
+                [[ $cmds =~ q ]] || read -t 0.66
             }
 
             atlas .extract $scmds
