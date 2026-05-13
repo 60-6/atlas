@@ -23,7 +23,7 @@ atlas() {
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
         local n=$'\n' r=$'\r'
 
-        local auth cache_path children flatpaks log_path orphans pulse root scanned
+        local auth cache children flatpaks log orphans pulse root scanned
         local -A modified nullarr rlineage
 
         echo
@@ -47,8 +47,8 @@ atlas() {
         [[ ${cmds//[-qyi]} ]] || cmds+=$default_commands
 
         (( EUID )) && auth=sudo
-        log_path=$(pacman-conf LogFile)
-        cache_path=$(pacman-conf CacheDir)
+        log=$(pacman-conf LogFile)
+        cache=$(pacman-conf CacheDir)
 
     }
 
@@ -114,7 +114,7 @@ atlas() {
 
     [[ $1 = .u ]] && {
 
-        [[ $cmds =~ i && $(tac "$log_path" | grep -m1 upgraded) > [$(date -d -${update_interval}days +%F)U ]] || {
+        [[ $cmds =~ i && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${update_interval}days +%F)U ]] || {
             atlas .await 2 "scan for updates? {y/${bold}n$reset} "
 
             [[ ${REPLY,,} = y ]] && {
@@ -190,14 +190,14 @@ atlas() {
             [[ $cmds =~ i ]] || echo "${dim}no orphans to remove$reset$n"
         }
 
-        local csize=$(du -sh "$cache_path" 2>/dev/null | cut -f1)
+        local csize=$(du -sh "$cache" 2>/dev/null | cut -f1)
 
         (( $(numfmt --from=iec "$csize") > cache_limit<<30 )) || [[ ! $cmds =~ i ]] && {
             atlas .await 2 "clear cache ($csize)? {y/${bold}n$reset} "
 
             [[ ${REPLY,,} = y ]] && {
                 yes | $auth pacman -Scc &>/dev/null
-                csize=$(du -sh "$cache_path" 2>/dev/null | cut -f1)
+                csize=$(du -sh "$cache" 2>/dev/null | cut -f1)
                 echo "${dim}new cache size: $csize$reset$n"
             }
 
@@ -247,7 +247,7 @@ atlas() {
         [[ $scmds =~ s || ($scmds =~ d && -d $save_path) ]] && scmds+=rfo
         [[ $scmds =~ c ]] && scmds+=o
 
-        modified[l1]=$(stat -c %Y "$log_path")
+        modified[l1]=$(stat -c %Y "$log")
         modified[f1]=$(stat -c %Y /var/lib/flatpak 2>/dev/null)
 
         [[ ${modified[l0]} && ${modified[l0]} = ${modified[l1]} ]] || {
