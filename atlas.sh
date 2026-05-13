@@ -10,14 +10,15 @@ atlas() {
         local save_path="/tmp/atlas"
         local update_interval=6
         local cache_limit=6
+        local delay_decimal=6
 
     }
 
 #  ├── execution ─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
-    (( executing == 66 )) || {
+    (( executing == 666 )) || {
 
-        local executing=66 cmds=$1
+        local executing=666 cmds=$1
 
         local hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[7G'
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
@@ -117,7 +118,7 @@ atlas() {
         [[ $cmds =~ i && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${update_interval}days +%F)U ]] || {
             atlas .await 2 "scan for updates? {y/${bold}n$reset} "
 
-            [[ ${REPLY,,} = y ]] && {
+            [[ ${REPLY,} = y ]] && {
                 [[ $(command -v yay) ]] && {
                     yay
                 :;} || {
@@ -180,7 +181,7 @@ atlas() {
         [[ $orphans ]] && {
             atlas .await 2 "remove orphans? (${#orphans[@]}) {y/${bold}n$reset} "
 
-            [[ ${REPLY,,} = y ]] && {
+            [[ ${REPLY,} = y ]] && {
                 $auth pacman -Rns ${orphans[@]}
                 echo
             }
@@ -195,7 +196,7 @@ atlas() {
         (( $(numfmt --from=iec "$csize") > cache_limit<<30 )) || [[ ! $cmds =~ i ]] && {
             atlas .await 2 "clear cache ($csize)? {y/${bold}n$reset} "
 
-            [[ ${REPLY,,} = y ]] && {
+            [[ ${REPLY,} = y ]] && {
                 yes | $auth pacman -Scc &>/dev/null
                 csize=$(du -sh "$cache" 2>/dev/null | cut -f1)
                 echo "${dim}new cache size: $csize$reset$n"
@@ -210,7 +211,7 @@ atlas() {
 
         atlas .await 2 "are you sure? {y/${bold}n$reset} "
 
-        [[ ${REPLY,,} = y ]] && atlas .suicide || echo "i'm flattered$n"
+        [[ ${REPLY,} = y ]] && atlas .suicide || echo "i'm flattered$n"
 
         atlas .await 0
 
@@ -269,19 +270,19 @@ atlas() {
             [[ $scmds =~ [ro] ]] && {
                 echo -n "$origin${dim}atlas: scanning orphans…$reset"
                 orphans=( $(pacman -Qqtd) )
-                [[ $cmds =~ q ]] || read -t 0.66
+                read -t "0.$delay_decimal"
             }
 
             [[ $scmds =~ r ]] && {
                 echo -n "$origin${dim}atlas: scanning root…$reset$clear"
                 root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
-                [[ $cmds =~ q ]] || read -t 0.66
+                read -t "0.$delay_decimal"
             }
 
             [[ $scmds =~ f ]] && {
                 echo -n "$origin${dim}atlas: scanning flatpaks…$reset$clear"
                 mapfile -t flatpaks < <(flatpak list --app --columns=name)
-                [[ $cmds =~ q ]] || read -t 0.66
+                read -t "0.$delay_decimal"
             }
 
             atlas .extract $scmds
@@ -307,7 +308,7 @@ atlas() {
                 for f in '/' '—' '\' '|'
                 do
                     echo -n "$r$bold( $f )$reset"
-                    sleep 0.05
+                    sleep "0.0$delay_decimal"
                 done
             done &pulse=$!
         } 2>/dev/null
@@ -381,7 +382,7 @@ atlas() {
 
                 (( ++x == xx )) && local pfx="└─ " indent="   " || local pfx="├─ " indent="│  "
 
-                read -t 0.0066
+                read -t "0.00$delay_decimal"
             }
 
             echo "$attr$depth$pfx$i$reset"
