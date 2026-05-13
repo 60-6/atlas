@@ -8,7 +8,7 @@ atlas() {
 
         local default_commands=irfosudc
         local save_path="/tmp/atlas"
-        local update_interval=6
+        local upgrade_interval=6
         local cache_limit=6
         local delay_decimal=6
 
@@ -24,19 +24,19 @@ atlas() {
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
         local n=$'\n' r=$'\r'
 
-        local agent auth cache children flatpaks log orphans pulse root scanned
+        local auth cache children flatpaks log orphans pulse root scanned
         local -A modified nullarr rlineage
 
         echo
-        atlas .resolve
-        atlas .dispatch
+        atlas :resolve
+        atlas :dispatch
         echo
 
     }
 
 #  ├── cortex ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
-    [[ $1 = .resolve ]] && {
+    [[ $1 = :resolve ]] && {
 
         pacman -Q base &>/dev/null || {
             echo "you're not even using arch silly$n"
@@ -48,11 +48,11 @@ atlas() {
         [[ ${cmds//[qyi]} ]] || cmds+=$default_commands
 
         (( EUID )) && auth=sudo
-        log=$(pacman-conf LogFile) cache=$(pacman-conf CacheDir) agent=$(type -P yay || type -P paru || echo "$auth pacman")
+        log=$(pacman-conf LogFile) cache=$(pacman-conf CacheDir)
 
     }
 
-    [[ $1 = .dispatch ]] && {
+    [[ $1 = :dispatch ]] && {
 
         local i
 
@@ -114,11 +114,11 @@ atlas() {
 
     [[ $1 = .u ]] && {
 
-        [[ $cmds =~ i && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${update_interval}days +%F)U ]] || {
+        [[ $cmds =~ i && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
             atlas .await 2 "scan for updates? {y/${bold}n$reset} "
 
             [[ ${REPLY,} = y ]] && {
-                $agent -Syu
+                $(type -P yay || type -P paru || echo "$auth pacman") -Syu
                 echo
 
                 [[ $(type -P flatpak) ]] && {
