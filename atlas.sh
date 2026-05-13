@@ -192,7 +192,7 @@ atlas() {
 
         local csize=$(du -sh "$cache_path" 2>/dev/null | cut -f1)
 
-        ([[ $csize ]] && (( $(numfmt --from=iec $csize) > cache_limit<<30 ))) || [[ ! $cmds =~ i ]] && {
+        (( $(numfmt --from=iec "$csize") > cache_limit<<30 )) || [[ ! $cmds =~ i ]] && {
             atlas .await 2 "clear cache ($csize)? {y/${bold}n$reset} "
 
             [[ ${REPLY,,} = y ]] && {
@@ -319,7 +319,7 @@ atlas() {
             rlineage=()
 
             while read pkg opt
-            do [[ " ${root[@]} " =~ " $opt " ]] && rlineage[$pkg]+=\ $opt
+            do [[ " ${root[@]} " =~ " $opt " ]] && rlineage[$pkg]+=" $opt "
             done < <(LC_ALL=C pacman -Qi ${root[@]} | awk '
                 proceed && /^ / {
                     gsub(/^ +|:.*/, "")
@@ -350,13 +350,12 @@ atlas() {
 
         for i in $list
         do
-            [[ " $recursed " =~ " $i " ]] && {
-                arr[$last]+=" "
-                arr[$last]=${arr[$last]/ $i / }
+            [[ $recursed =~ " $i " ]] && {
+                arr[$last]=${arr[$last]/ $i }
                 continue
             }
 
-            atlas .cycle "${arr[$i]}" $arrn $i "$recursed $i"
+            atlas .cycle "${arr[$i]}" $arrn $i " $recursed $i "
         done
 
     }
@@ -369,7 +368,7 @@ atlas() {
 
         for i in "${xarr[@]}"
         do
-            [[ ! $depth && " ${arr[@]} " =~ " $i " ]] && continue
+            [[ ! $depth && ${arr[@]} =~ " $i " ]] && continue
 
             [[ $cmds =~ q ]] || {
                 [[ $depth ]] || {
@@ -407,9 +406,7 @@ atlas() {
         } 2>/dev/null
 
         (( stage > 1 )) && {
-            [[ $cmds =~ y ]] && {
-                REPLY=y
-            :;} || {
+            [[ $cmds =~ y ]] && REPLY=y || {
                 while read -t 0
                 do read
                 done
@@ -456,14 +453,10 @@ atlas() {
 
     [[ $1 = .suicide ]] && {
 
-        {
-            rm -r "$save_path"
-            grep -q ' //  ▲  \\\\ ' $BASH_SOURCE && sed -i '/ << A T L A S >> /, \| //  ▲  \\\\ | d' $BASH_SOURCE
-        } 2>/dev/null
+        rm -rf "$save_path"
 
-        grep -q "atlas()" $BASH_SOURCE && {
-            echo "${red}i couldn't remove atlas from $BASH_SOURCE, do it yourself$reset"
-        :;} || echo "${dim}bye$reset"
+        grep -q ' //  ▲  \\\\ ' "$BASH_SOURCE" && sed -i '\L << A T \L A S >> L, \| //  ▲  \\\\ | d' "$BASH_SOURCE"
+        grep -q "atlas()" "$BASH_SOURCE" && echo "${red}i couldn't delete my source code$reset" || echo "${dim}bye$reset"
 
         atlas .signal 0
         unset -f atlas
