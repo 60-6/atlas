@@ -172,7 +172,7 @@ atlas() {
     [[ $1 = .c ]] && {
 
         [[ $orphans ]] && {
-            atlas .await 2 "remove orphans? (${#orphans[@]}) {y/${bold}n$reset} "
+            atlas .await 2 "remove orphans (${#orphans[@]})? {y/${bold}n$reset} "
 
             [[ ${REPLY,} = y ]] && {
                 $auth pacman -Rns ${orphans[@]}
@@ -186,16 +186,20 @@ atlas() {
 
         local csize=$(du -sh "$cache" 2>/dev/null | cut -f1)
 
-        (( $(numfmt --from=iec "$csize") > cache_limit<<30 )) || [[ ! $cmds =~ i ]] && {
-            atlas .await 2 "clear cache ($csize)? {y/${bold}n$reset} "
+        [[ $csize = 0 ]] && {
+            [[ $cmds =~ i ]] || echo "${dim}cache is empty$reset$n"
+        :;} || {
+            [[ $cmds =~ i ]] && (( cache_limit<<30 > $(numfmt --from=iec "$csize") )) || {
+                atlas .await 2 "clear cache ($csize)? {y/${bold}n$reset} "
 
-            [[ ${REPLY,} = y ]] && {
-                yes | $auth pacman -Scc &>/dev/null
-                csize=$(du -sh "$cache" 2>/dev/null | cut -f1)
-                echo "${dim}new cache size: $csize$reset$n"
+                [[ ${REPLY,} = y ]] && {
+                    yes | $auth pacman -Scc &>/dev/null
+                    csize=$(du -sh "$cache" 2>/dev/null | cut -f1)
+                    echo "${dim}updated cache size: $csize$reset$n"
+                }
+
+                atlas .await 0
             }
-
-            atlas .await 0
         }
 
     }
