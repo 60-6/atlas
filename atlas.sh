@@ -24,8 +24,8 @@ atlas() {
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
         local n=$'\n' r=$'\r'
 
-        local auth cache children flatpaks log orphans pulse root scanned
-        local -A modified nullarr rlineage
+        local apps auth cache children flatpaks log orphans pulse root scanned
+        local -A modified null lineage
 
         echo
         atlas :resolve
@@ -44,6 +44,7 @@ atlas() {
         }
 
         [[ $cmds =~ \? ]] && atlas .error s
+        cmds=${cmds//-}
         [[ $cmds =~ [^qyirfosudcX] ]] && atlas .error c
         [[ ${cmds//[qyi]} ]] || cmds+=$default_commands
 
@@ -74,7 +75,7 @@ atlas() {
     [[ $1 = .r ]] && {
 
         echo "${bold}root (${#root[@]})$reset"
-        atlas .render root rlineage
+        atlas .render root lineage
 
     }
 
@@ -82,7 +83,7 @@ atlas() {
 
         [[ $flatpaks ]] && {
             echo "${bold}flatpaks (${#flatpaks[@]})$reset"
-            atlas .render flatpaks nullarr
+            atlas .render flatpaks null
         :;} || {
             [[ $cmds =~ i ]] || echo "${dim}flatpaks: nil$reset$n"
         }
@@ -93,7 +94,7 @@ atlas() {
 
         [[ $orphans ]] && {
             echo "$red${bold}orphans (${#orphans[@]})$reset"
-            atlas .render orphans nullarr "$red"
+            atlas .render orphans null "$red"
         :;} || {
             [[ $cmds =~ i ]] || echo "${dim}orphans: nil$reset$n"
         }
@@ -102,9 +103,9 @@ atlas() {
 
     [[ $1 = .s ]] && {
 
-        mkdir -p "$save_path" && {
+        mkdir -p "$save_path" && [[ -w $save_path ]] && {
             printf "%s$n" ${root[@]} > "$save_path/root"
-            printf "%s$n" "${flatpaks[@]}" > "$save_path/flatpaks"
+            printf "%s$n" ${apps[@]} > "$save_path/apps"
             printf "%s$n" ${orphans[@]} > "$save_path/orphans"
 
             [[ $cmds =~ i ]] || echo "${dim}saved$reset$n"
@@ -137,14 +138,14 @@ atlas() {
         local i
         local -A delta
 
-        [[ -d $save_path ]] && {
-            for i in root flatpaks orphans
+        [[ -w $save_path ]] && {
+            for i in root apps orphans
             do
                 local -n xarr=$i
 
                 {
-                    delta[${i}0]=$(grep -vxFf <(printf "%s$n" "${xarr[@]}") "$save_path/$i")
-                    delta[${i}1]=$(grep -vxFf "$save_path/$i" <(printf "%s$n" "${xarr[@]}"))
+                    delta[${i}0]=$(grep -vxFf <(printf "%s$n" ${xarr[@]}) "$save_path/$i")
+                    delta[${i}1]=$(grep -vxFf "$save_path/$i" <(printf "%s$n" ${xarr[@]}))
                 } 2>/dev/null
 
                 [[ ${delta[${i}0]}${delta[${i}1]} ]] && {
@@ -234,20 +235,20 @@ atlas() {
 
         local scmds=$2
 
-        [[ $scmds =~ r && ! $cmds =~ q ]] && scmds+=R
-        [[ $scmds =~ s || ($scmds =~ d && -d $save_path) ]] && scmds+=rfo
+        [[ $scmds =~ r && ! $cmds =~ q ]] && scmds+=l
+        [[ $scmds =~ s || ($scmds =~ d && -w $save_path) ]] && scmds+=rao
         [[ $scmds =~ c ]] && scmds+=o
 
         modified[l1]=$(stat -c %Y "$log")
         modified[f1]=$(stat -c %Y /var/lib/flatpak 2>/dev/null)
 
         [[ ${modified[l0]} = ${modified[l1]} ]] || {
-            scanned=${scanned//[roR]}
+            scanned=${scanned//[rlo]}
             modified[l0]=${modified[l1]}
         }
 
         [[ ${modified[f0]} = ${modified[f1]} ]] || {
-            scanned=${scanned//f}
+            scanned=${scanned//[fa]}
             modified[f0]=${modified[f1]}
         }
 
@@ -272,6 +273,12 @@ atlas() {
             [[ $scmds =~ f ]] && {
                 echo -n "$origin${dim}atlas: scanning flatpaks…$reset$clear"
                 mapfile -t flatpaks < <(flatpak list --app --columns=name)
+                read -t "0.$delay_decimal"
+            }
+
+            [[ $scmds =~ a ]] && {
+                echo -n "$origin${dim}atlas: scanning app ids…$reset$clear"
+                apps=( $(flatpak list --app --columns=app) )
                 read -t "0.$delay_decimal"
             }
 
@@ -307,11 +314,11 @@ atlas() {
 
         local scmds=$2 pkg opt
 
-        [[ $scmds =~ R ]] && {
-            rlineage=()
+        [[ $scmds =~ l ]] && {
+            lineage=()
 
             while read pkg opt
-            do [[ " ${root[@]} " =~ " $opt " ]] && rlineage[$pkg]+=" $opt "
+            do [[ " ${root[@]} " =~ " $opt " ]] && lineage[$pkg]+=" $opt "
             done < <(LC_ALL=C pacman -Qi ${root[@]} | awk '
                 proceed && /^ / {
                     gsub(/^ +|:.*/, "")
@@ -330,7 +337,7 @@ atlas() {
                 }
             ')
 
-            atlas .cycle "${!rlineage[*]}" rlineage
+            atlas .cycle "${!lineage[*]}" lineage
         }
 
     }
