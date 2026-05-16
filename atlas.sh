@@ -1,8 +1,8 @@
-# ────────────────────────────────────────────────────────────────────── << A T L A S >> ────────────────────────────────────────────────────────────────────── #
+# ══════════════════════════════════════════════════════════════════════ << A T L A S >> ══════════════════════════════════════════════════════════════════════ #
 
 atlas() {
 
-#  ┌── configuration ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+#  ╭── configuration ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 
     {
 
@@ -20,7 +20,7 @@ atlas() {
 
         local executing=66 cmds=$1 auth=$(type -P sudo || type -P doas)
 
-        local hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[7G'
+        local hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[3G'
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
         local n=$'\n' r=$'\r'
 
@@ -83,7 +83,7 @@ atlas() {
         [[ $flatpaks ]] && {
             echo "${bold}flatpaks (${#flatpaks[@]})$reset"
             atlas .render flatpaks null
-        :;} || [[ $cmds =~ i ]] || echo "${dim}flatpaks: nil$reset$n"
+        :;} || [[ $cmds =~ i ]] || echo "$dim► flatpaks: nil$reset$n"
 
     }
 
@@ -92,7 +92,7 @@ atlas() {
         [[ $orphans ]] && {
             echo "$red${bold}orphans (${#orphans[@]})$reset"
             atlas .render orphans null "$red"
-        :;} || [[ $cmds =~ i ]] || echo "${dim}orphans: nil$reset$n"
+        :;} || [[ $cmds =~ i ]] || echo "$dim► orphans: nil$reset$n"
 
     }
 
@@ -105,15 +105,15 @@ atlas() {
             printf "%s$n" ${apps[@]} > "$save_path/apps"
             printf "%s$n" ${orphans[@]} > "$save_path/orphans"
 
-            [[ $cmds =~ i ]] || echo "${dim}saved$reset$n"
-        :;} || echo "${red}huh…? use a proper save path$reset$n"
+            [[ $cmds =~ i ]] || echo "$dim► saved$reset$n"
+        :;} || echo "$red⚠︎ huh…? use a proper save path$reset$n"
 
     }
 
     [[ $1 = .u ]] && {
 
         [[ $cmds =~ i && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
-            atlas .await 2 "scan for updates? {y/${bold}n$reset} "
+            atlas .await 2 "◄ scan for updates? {y/${bold}n$reset} "
 
             [[ ${REPLY,} = y ]] && {
                 $(type -P yay || type -P paru || echo "$auth pacman") -Syu
@@ -148,19 +148,20 @@ atlas() {
                 [[ ${delta[${i}0]}${delta[${i}1]} ]] && {
                     echo "$bold▼ $i difference$reset$n"
 
-                    [[ ${delta[${i}0]} ]] && echo "$dim${delta[${i}0]}$reset"
+                    [[ ${delta[${i}0]} ]] && printf "  $dim◎ %s$reset$n" ${delta[${i}0]}
 
                     [[ ${delta[${i}1]} ]] && {
                         [[ $i = orphans ]] && echo -n "$red"
-                        echo "${delta[${i}1]}$reset"
+                        printf "  ◉ %s$n" ${delta[${i}1]}
+                        echo -n "$reset"
                     }
 
                     echo
                 }
             done
 
-            [[ $cmds =~ i || ${delta[@]} =~ [^\ ] ]] || echo "${dim}difference: nil$reset$n"
-        :;} || [[ $cmds =~ s ]] || echo "${red}you forgot to save…$reset$n"
+            [[ $cmds =~ i || ${delta[@]} =~ [^\ ] ]] || echo "$dim► difference: nil$reset$n"
+        :;} || [[ $cmds =~ s ]] || echo "$red⚠︎ you forgot to save…$reset$n"
 
     }
 
@@ -170,7 +171,7 @@ atlas() {
         local csize=$(du -sh "$cache" 2>/dev/null | cut -f1)
 
         [[ $orphans ]] && {
-            atlas .await 2 "remove orphans (${#orphans[@]})? {y/${bold}n$reset} "
+            atlas .await 2 "◄ remove orphans (${#orphans[@]})? {y/${bold}n$reset} "
 
             [[ ${REPLY,} = y ]] && {
                 $auth pacman -Rns ${orphans[@]}
@@ -178,28 +179,28 @@ atlas() {
             }
 
             atlas .await 0
-        :;} || [[ $cmds =~ i ]] || echo "${dim}no orphans to remove$reset$n"
+        :;} || [[ $cmds =~ i ]] || echo "$dim► no orphans to remove$reset$n"
 
         [[ $csize != 0 ]] && {
             [[ $cmds =~ i ]] && (( cache_limit<<30 > $(numfmt --from=iec "$csize") )) || {
-                atlas .await 2 "clear cache ($csize)? {y/${bold}n$reset} "
+                atlas .await 2 "◄ clear cache ($csize)? {y/${bold}n$reset} "
 
                 [[ ${REPLY,} = y ]] && {
                     yes | $auth pacman -Scc &>/dev/null
-                    echo "${dim}updated cache size: $(du -sh "$cache" 2>/dev/null | cut -f1)$reset$n"
+                    echo "$dim► updated cache size: $(du -sh "$cache" 2>/dev/null | cut -f1)$reset$n"
                 }
 
                 atlas .await 0
             }
-        :;} || [[ $cmds =~ i ]] || echo "${dim}cache is empty$reset$n"
+        :;} || [[ $cmds =~ i ]] || echo "$dim► cache is empty$reset$n"
 
     }
 
     [[ $1 = .X ]] && {
 
-        atlas .await 2 "are you sure? {y/${bold}n$reset} "
+        atlas .await 2 "$red☢︎ are you sure? {y/${bold}n$reset$red}$reset "
 
-        [[ ${REPLY,} = y ]] && atlas .suicide || echo "i'm flattered$n"
+        [[ ${REPLY,} = y ]] && atlas .suicide || echo "$dim► i'm flattered$reset$n"
 
         atlas .await 0
 
@@ -291,9 +292,9 @@ atlas() {
         (( stage )) && {
             while :
             do
-                for f in '/' '—' '\' '|'
+                for f in ◜ ◝ ◞ ◟ ○ ◎ ◉ ● ◉ ◎ ○ ○
                 do
-                    echo -n "$r$bold( $f )$reset"
+                    echo -n "$r$bold$f$reset"
                     sleep 0.0$delay_decimal
                 done
             done &pulse=$!
@@ -359,7 +360,7 @@ atlas() {
                 [[ $cmds =~ q ]] || {
                     [[ $depth ]] || echo "$attr│"
                     (( x )) || local xx=$([[ $depth ]] && echo ${#xarr[@]} || grep -cvxFf <(printf "%s$n" ${arr[@]}) <(printf "%s$n" "${xarr[@]}"))
-                    (( ++x == xx )) && local pfx="└─ " indent="   " || local pfx="├─ " indent="│  "
+                    (( ++x == xx )) && local pfx="╰─ " indent="   " || local pfx="├─ " indent="│  "
                 }
 
                 echo "$attr$depth$pfx$i$reset"
@@ -404,16 +405,16 @@ atlas() {
 
         local mode=$2
 
-        [[ $mode = c ]] && echo "${red}not sure what you mean, run 'atlas ?' for syntax$reset"
+        [[ $mode = c ]] && echo "$red⚠︎ not sure what you mean, run 'atlas ?' for syntax$reset"
 
         [[ $mode = s ]] && {
             echo "$bold▼ atlas syntax$reset$n"
-            echo "  ┌── modifiers ──────────────┐"
+            echo "  ╭── modifiers ──────────────╮"
             echo "  │ q  ·  quiet output        │"
             echo "  │ y  ·  auto confirm        │"
             echo "  │ i  ·  intelligent mode    │"
-            echo "  └───────────────────────────┘$n"
-            echo "  ┌── operations ─────────────┐"
+            echo "  ╰───────────────────────────╯$n"
+            echo "  ╭── operations ─────────────╮"
             echo "  │ r  ·  view root           │"
             echo "  │ f  ·  view flatpaks       │"
             echo "  │ o  ·  view orphans        │"
@@ -422,7 +423,7 @@ atlas() {
             echo "  │ d  ·  view difference     │"
             echo "  │ c  ·  system cleanup      │"
             echo "  │ X  ·  erase atlas         │"
-            echo "  └───────────────────────────┘"
+            echo "  ╰───────────────────────────╯"
         }
 
         echo
@@ -435,7 +436,7 @@ atlas() {
         rm -rf "$save_path"
 
         grep -q ' //  ▲  \\\\ ' "$BASH_SOURCE" && sed -i '\L << A T \L A S >> L, \| //  ▲  \\\\ | d' "$BASH_SOURCE"
-        grep -q "atlas()" "$BASH_SOURCE" && echo "${red}feeling a little clingy, delete the source code yourself$reset" || echo "${dim}…bye$reset"
+        grep -q "atlas()" "$BASH_SOURCE" && echo "$red⚠︎ feeling a little clingy, delete the source code yourself$reset" || echo "$dim…bye$reset"
 
         atlas .signal 0
         unset -f atlas
@@ -445,8 +446,8 @@ atlas() {
 
     }
 
-#  └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+#  ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 }
 
-# ───────────────────────────────────────────────────────────────────────── //  ▲  \\ ───────────────────────────────────────────────────────────────────────── #
+# ═════════════════════════════════════════════════════════════════════════ //  ▲  \\ ═════════════════════════════════════════════════════════════════════════ #
