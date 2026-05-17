@@ -98,8 +98,6 @@ atlas() {
 
     [[ $1 = .s ]] && {
 
-        mkdir -p "$save_path"
-
         [[ -w $save_path ]] && {
             printf "%s$n" ${root[@]} > "$save_path/root"
             printf "%s$n" ${apps[@]} > "$save_path/apps"
@@ -167,8 +165,7 @@ atlas() {
 
     [[ $1 = .c ]] && {
 
-        local cache=$(pacman-conf CacheDir)
-        local csize=$(du -sh "$cache" 2>/dev/null | cut -f1)
+        local cache
 
         [[ $orphans ]] && {
             atlas .await 2 "⟡ remove orphans (${#orphans[@]})? {y/${bold}n$reset} "
@@ -181,13 +178,16 @@ atlas() {
             atlas .await 0
         :;} || [[ $cmds =~ i ]] || echo "$dim▷ no orphans to remove$reset$n"
 
+        mapfile -t cache < <(pacman-conf CacheDir)
+        local csize=$(du -shc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)
+
         [[ $csize != 0 ]] && {
             [[ $cmds =~ i ]] && (( cache_limit<<30 > $(numfmt --from=iec "$csize") )) || {
                 atlas .await 2 "⟡ clear cache ($csize)? {y/${bold}n$reset} "
 
                 [[ ${REPLY,} = y ]] && {
                     yes | $auth pacman -Scc &>/dev/null
-                    echo "$dim▷ updated cache size: $(du -sh "$cache" 2>/dev/null | cut -f1)$reset$n"
+                    echo "$dim▷ updated cache size: $(du -shc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)$reset$n"
                 }
 
                 atlas .await 0
@@ -232,7 +232,8 @@ atlas() {
         local scmds=$2
 
         [[ $scmds =~ r && ! $cmds =~ q ]] && scmds+=l
-        [[ $scmds =~ d && -r $save_path || $scmds =~ s ]] && scmds+=rao
+        [[ $scmds =~ s ]] && mkdir -p "$save_path" 2>/dev/null
+        [[ $scmds =~ s && -w $save_path || $scmds =~ d && -r $save_path ]] && scmds+=rao
         scmds=${scmds//c/o}
 
         modified[l1]=$(stat -c %Y "$log")
