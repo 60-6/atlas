@@ -146,11 +146,11 @@ atlas() {
                 [[ ${delta[${i}0]}${delta[${i}1]} ]] && {
                     echo "$bold▼ $i difference$reset$n"
 
-                    [[ ${delta[${i}0]} ]] && printf "  $dim◎ %s$reset$n" ${delta[${i}0]}
+                    [[ ${delta[${i}0]} ]] && printf " $dim◎ %s$reset$n" ${delta[${i}0]}
 
                     [[ ${delta[${i}1]} ]] && {
                         [[ $i = orphans ]] && echo -n "$red"
-                        printf "  ◉ %s$n" ${delta[${i}1]}
+                        printf " ◉ %s$n" ${delta[${i}1]}
                         echo -n "$reset"
                     }
 
@@ -410,21 +410,21 @@ atlas() {
 
         [[ $mode = s ]] && {
             echo "$bold▼ atlas syntax$reset$n"
-            echo "  ╭── modifiers ──────────────╮"
-            echo "  │ q  ·  quiet output        │"
-            echo "  │ y  ·  auto confirm        │"
-            echo "  │ i  ·  intelligent mode    │"
-            echo "  ╰───────────────────────────╯$n"
-            echo "  ╭── operations ─────────────╮"
-            echo "  │ r  ·  view root           │"
-            echo "  │ f  ·  view flatpaks       │"
-            echo "  │ o  ·  view orphans        │"
-            echo "  │ s  ·  save system state   │"
-            echo "  │ u  ·  upgrade system      │"
-            echo "  │ d  ·  view difference     │"
-            echo "  │ c  ·  system cleanup      │"
-            echo "  │ X  ·  erase atlas         │"
-            echo "  ╰───────────────────────────╯"
+            echo " ╭── modifiers ──────────────╮"
+            echo " │ q  ·  quiet output        │"
+            echo " │ y  ·  auto confirm        │"
+            echo " │ i  ·  intelligent mode    │"
+            echo " ╰───────────────────────────╯$n"
+            echo " ╭── operations ─────────────╮"
+            echo " │ r  ·  view root           │"
+            echo " │ f  ·  view flatpaks       │"
+            echo " │ o  ·  view orphans        │"
+            echo " │ s  ·  save system state   │"
+            echo " │ u  ·  upgrade system      │"
+            echo " │ d  ·  view difference     │"
+            echo " │ c  ·  system cleanup      │"
+            echo " │ X  ·  erase atlas         │"
+            echo " ╰───────────────────────────╯"
         }
 
         echo
