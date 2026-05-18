@@ -356,9 +356,9 @@ atlas() {
                 done
             done &async[pulse]=$!
         :;} 2>/dev/null || {
-            echo -n "$r$clear"
             kill ${async[pulse]}
             wait "${async[pulse]}"
+            echo -n "$r$clear"
         } 2>/dev/null
 
     }
