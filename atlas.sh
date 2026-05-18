@@ -19,14 +19,10 @@ atlas() {
     (( executing - 66 )) && {
 
         local cmds=$1 executing=66
-
         local mods="qyi" ops="raosudcX" auth=$(type -P sudo || type -P doas)
+        local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' n=$'\n' r=$'\r'
 
-        local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
-        local hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K'
-        local n=$'\n' r=$'\r'
-
-        local log root apps ids orphans scanned
+        local log scanned orphans root apps ids
         local -A modified async lineage null
 
         echo
