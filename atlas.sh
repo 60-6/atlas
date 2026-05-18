@@ -358,10 +358,10 @@ atlas() {
                     sleep 0.0$delay_decimal
                 done
             done &async[pulse]=$!
-            disown ${async[pulse]}
         :;} 2>/dev/null || {
             echo -n "$r$clear"
             kill ${async[pulse]}
+            wait "${async[pulse]}"
         } 2>/dev/null
 
     }
