@@ -455,13 +455,10 @@ atlas() {
         REPLY=y
 
         [[ $scmds =~ [qw] && ! $cmds =~ y ]] && {
-            [[ $scmds = q ]] && echo -n "∷ $msg {y/${bold}n$reset}"
-            [[ $scmds = w ]] && echo -n "$red⁘ $msg {y/${bold}n$reset$red}$reset"
+            [[ $scmds = q ]] && echo -n "∷ $msg {y/${bold}n$reset} "
+            [[ $scmds = w ]] && echo -n "$red⁘ $msg {y/${bold}n$reset$red}$reset "
 
             atlas .veil 1
-            while read -t 0
-            do read
-            done
             read -s -n 1
             echo -n "$r$clear"
         }
