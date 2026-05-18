@@ -468,7 +468,7 @@ atlas() {
     [[ $1 = .emit ]] && {
 
         local scmds=$2
-        local -A ids=([a]=window-attention [i]=dialog-information [e]=dialog-error [q]=window-question [w]=dialog-warning)
+        local -A ids=( [a]=window-attention [i]=dialog-information [e]=dialog-error [q]=window-question [w]=dialog-warning )
 
         [[ $cmds =~ q ]] || {
             kill -- -${async[emit]}
