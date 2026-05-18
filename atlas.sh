@@ -22,7 +22,7 @@ atlas() {
         local mods="qyi" ops="raosudcX" auth=$(type -P sudo || type -P doas)
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' n=$'\n' r=$'\r'
 
-        local log scanned orphans root apps ids
+        local log scanned orphans root appnames apps
         local -A modified async lineage null
 
         echo
@@ -78,9 +78,9 @@ atlas() {
 
     [[ $1 = .a ]] && {
 
-        [[ $apps ]] && {
-            echo "${bold}apps (${#apps[@]})$reset"
-            atlas .render apps null
+        [[ $appnames ]] && {
+            echo "${bold}apps (${#appnames[@]})$reset"
+            atlas .render appnames null
         :;} || [[ $cmds =~ i ]] || atlas .echo a "apps: nil"
 
     }
@@ -98,7 +98,7 @@ atlas() {
 
         [[ -w $save_path ]] && {
             printf "%s$n" ${root[@]} > "$save_path/root"
-            printf "%s$n" ${ids[@]} > "$save_path/ids"
+            printf "%s$n" ${apps[@]} > "$save_path/apps"
             printf "%s$n" ${orphans[@]} > "$save_path/orphans"
 
             [[ $cmds =~ i ]] || atlas .echo a "saved"
@@ -132,7 +132,7 @@ atlas() {
         local -A delta
 
         [[ -r $save_path ]] && {
-            for i in root ids orphans
+            for i in root apps orphans
             do
                 local -n xarr=$i
 
@@ -324,13 +324,13 @@ atlas() {
 
             [[ $scmds =~ a ]] && {
                 echo -n "${dim}scanning apps…$reset$clear"
-                mapfile -t apps < <(flatpak list --app --columns=name)
+                mapfile -t appnames < <(flatpak list --app --columns=name)
                 atlas .chrono 13
             }
 
             [[ $scmds =~ i ]] && {
                 echo -n "${dim}scanning app ids…$reset$clear"
-                ids=( $(flatpak list --app --columns=app) )
+                apps=( $(flatpak list --app --columns=app) )
                 atlas .chrono 13
             }
 
@@ -471,17 +471,11 @@ atlas() {
     [[ $1 = .emit ]] && {
 
         local scmds=$2
+        local -A ids=([a]=window-attention [i]=dialog-information [e]=dialog-error [q]=window-question [w]=dialog-warning)
 
         [[ $cmds =~ q ]] || {
-            kill ${async[emit]}
-
-            {
-                [[ $scmds = a ]] && canberra-gtk-play -i window-attention
-                [[ $scmds = i ]] && canberra-gtk-play -i dialog-information
-                [[ $scmds = e ]] && canberra-gtk-play -i dialog-error
-                [[ $scmds = q ]] && canberra-gtk-play -i window-question
-                [[ $scmds = w ]] && canberra-gtk-play -i dialog-warning
-            } &async[emit]=$!
+            kill -- -${async[emit]}
+            canberra-gtk-play -i ${ids[$scmds]} &async[emit]=$!
             disown ${async[emit]}
         } 2>/dev/null
 
