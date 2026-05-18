@@ -64,7 +64,7 @@ atlas() {
         for i in $(fold -w1 <<< ${cmds//[$mods]})
         do
             atlas .scan $i
-            atlas -$i
+            atlas .$i
         done
 
         atlas .signal 0
@@ -73,14 +73,14 @@ atlas() {
 
 #  ├── operations ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
-    [[ $1 = -r ]] && {
+    [[ $1 = .r ]] && {
 
         echo "${bold}root (${#root[@]})$reset"
         atlas .render root lineage
 
     }
 
-    [[ $1 = -a ]] && {
+    [[ $1 = .a ]] && {
 
         [[ $apps ]] && {
             echo "${bold}apps (${#apps[@]})$reset"
@@ -89,7 +89,7 @@ atlas() {
 
     }
 
-    [[ $1 = -o ]] && {
+    [[ $1 = .o ]] && {
 
         [[ $orphans ]] && {
             echo "$red${bold}orphans (${#orphans[@]})$reset"
@@ -98,7 +98,7 @@ atlas() {
 
     }
 
-    [[ $1 = -s ]] && {
+    [[ $1 = .s ]] && {
 
         [[ -w $save_path ]] && {
             printf "%s$n" ${root[@]} > "$save_path/root"
@@ -110,7 +110,7 @@ atlas() {
 
     }
 
-    [[ $1 = -u ]] && {
+    [[ $1 = .u ]] && {
 
         [[ $cmds =~ i && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
             atlas .echo q "scan for updates?"
@@ -130,7 +130,7 @@ atlas() {
 
     }
 
-    [[ $1 = -d ]] && {
+    [[ $1 = .d ]] && {
 
         local i
         local -A delta
@@ -163,7 +163,7 @@ atlas() {
 
     }
 
-    [[ $1 = -c ]] && {
+    [[ $1 = .c ]] && {
 
         local cache
 
@@ -196,7 +196,7 @@ atlas() {
 
     }
 
-    [[ $1 = -X ]] && {
+    [[ $1 = .X ]] && {
 
         atlas .echo w "are you sure?"
 
@@ -439,18 +439,7 @@ atlas() {
 
         local scmds=$2 msg=$3
 
-        [[ $cmds =~ q ]] || {
-            kill ${async[sound]}
-
-            {
-                [[ $scmds = a ]] && canberra-gtk-play -i window-attention
-                [[ $scmds = i ]] && canberra-gtk-play -i dialog-information
-                [[ $scmds = e ]] && canberra-gtk-play -i dialog-error
-                [[ $scmds = q ]] && canberra-gtk-play -i window-question
-                [[ $scmds = w ]] && canberra-gtk-play -i dialog-warning
-            } &async[sound]=$!
-            disown ${async[sound]}
-        } 2>/dev/null
+        atlas .emit $scmds
 
         [[ $scmds = a ]] && echo "$dim∴ $msg$reset$n"
         [[ $scmds = i ]] && echo "$bold∵ $msg$reset$n"
@@ -469,6 +458,25 @@ atlas() {
             read -s -n 1
             echo -n "$r$clear"
         }
+
+    }
+
+    [[ $1 = .emit ]] && {
+
+        local scmds=$2
+
+        [[ $cmds =~ q ]] || {
+            kill ${async[emit]}
+
+            {
+                [[ $scmds = a ]] && canberra-gtk-play -i window-attention
+                [[ $scmds = i ]] && canberra-gtk-play -i dialog-information
+                [[ $scmds = e ]] && canberra-gtk-play -i dialog-error
+                [[ $scmds = q ]] && canberra-gtk-play -i window-question
+                [[ $scmds = w ]] && canberra-gtk-play -i dialog-warning
+            } &async[emit]=$!
+            disown ${async[emit]}
+        } 2>/dev/null
 
     }
 
