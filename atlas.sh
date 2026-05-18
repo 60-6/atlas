@@ -10,7 +10,7 @@ atlas() {
         local default_commands=iraosudc
         local upgrade_interval=6
         local cache_limit=6
-        local delay_decimal=6
+        local fake_delay=6
 
     }
 
@@ -22,8 +22,8 @@ atlas() {
 
         local mods="qyi" ops="raosudcX" auth=$(type -P sudo || type -P doas)
 
-        local hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[3G'
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
+        local hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K'
         local n=$'\n' r=$'\r'
 
         local log root apps ids orphans scanned
@@ -315,27 +315,27 @@ atlas() {
 
         {
             [[ $scmds =~ [ro] ]] && {
-                echo -n "$origin${dim}scanning orphans…$reset"
+                echo -n "${dim}scanning orphans…$reset"
                 orphans=( $(pacman -Qqtd) )
-                read -t 0.$delay_decimal
+                atlas .chrono 13
             }
 
             [[ $scmds =~ r ]] && {
-                echo -n "$origin${dim}scanning root…$reset$clear"
+                echo -n "${dim}scanning root…$reset$clear"
                 root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
-                read -t 0.$delay_decimal
+                atlas .chrono 13
             }
 
             [[ $scmds =~ a ]] && {
-                echo -n "$origin${dim}scanning apps…$reset$clear"
+                echo -n "${dim}scanning apps…$reset$clear"
                 mapfile -t apps < <(flatpak list --app --columns=name)
-                read -t 0.$delay_decimal
+                atlas .chrono 13
             }
 
             [[ $scmds =~ i ]] && {
-                echo -n "$origin${dim}scanning app ids…$reset$clear"
+                echo -n "${dim}scanning app ids…$reset$clear"
                 ids=( $(flatpak list --app --columns=app) )
-                read -t 0.$delay_decimal
+                atlas .chrono 13
             }
 
             atlas .extract $scmds
@@ -350,12 +350,13 @@ atlas() {
         local stage=$2
 
         (( stage )) && {
+            echo -n "  "
             while :
             do
                 for f in ◟ ◜ ◝ ◞ ○ ◎ ◉ ● ◉ ◎ ○
                 do
-                    echo -n "$r$bold$f$reset"
-                    sleep 0.0$delay_decimal
+                    echo -n "$r$bold$f$reset "
+                    atlas .chrono 115
                 done
             done &async[pulse]=$!
         :;} 2>/dev/null || {
@@ -366,12 +367,22 @@ atlas() {
 
     }
 
+    [[ $1 = .chrono ]] && {
+
+        local denominator=$2
+
+        [[ $cmds =~ q ]] || read -t $(awk "BEGIN { print $fake_delay/$denominator }")
+
+    }
+
     [[ $1 = .extract ]] && {
 
         local scmds=$2 pkg opt
 
         [[ $scmds =~ l ]] && {
+            echo -n "${dim}extracting lineage…$reset$clear"
             lineage=()
+            atlas .chrono 13
 
             while read pkg opt
             do [[ " ${root[@]} " =~ " $opt " ]] && lineage[$pkg]+=" $opt "
@@ -424,7 +435,7 @@ atlas() {
                 }
 
                 echo "$attr$depth$pfx$i$reset"
-                read -t 0.00$delay_decimal
+                atlas .chrono 666
 
                 local children=( ${arr[$i]} )
                 atlas .render children $arrn "$attr" "$depth$indent$dim"
