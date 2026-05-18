@@ -26,8 +26,8 @@ atlas() {
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m'
         local n=$'\n' r=$'\r'
 
-        local apps emit ids log orphans pulse root scanned
-        local -A modified null lineage
+        local log root apps ids orphans scanned
+        local -A modified async lineage null
 
         echo
         atlas :resolve
@@ -41,8 +41,7 @@ atlas() {
     [[ $1 = :resolve ]] && {
 
         pacman -Q base &>/dev/null || {
-            echo "$dim∴ you're not even using arch silly$reset$n"
-            atlas .emit i
+            atlas .echo a "you're not even using arch silly"
             atlas .suicide
         }
 
@@ -65,7 +64,7 @@ atlas() {
         for i in $(fold -w1 <<< ${cmds//[$mods]})
         do
             atlas .scan $i
-            atlas .$i
+            atlas -$i
         done
 
         atlas .signal 0
@@ -74,59 +73,47 @@ atlas() {
 
 #  ├── operations ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
-    [[ $1 = .r ]] && {
+    [[ $1 = -r ]] && {
 
         echo "${bold}root (${#root[@]})$reset"
         atlas .render root lineage
 
     }
 
-    [[ $1 = .a ]] && {
+    [[ $1 = -a ]] && {
 
         [[ $apps ]] && {
             echo "${bold}apps (${#apps[@]})$reset"
             atlas .render apps null
-        :;} || [[ $cmds =~ i ]] || {
-            echo "$dim∴ apps: nil$reset$n"
-            atlas .emit i
-        }
+        :;} || [[ $cmds =~ i ]] || atlas .echo a "apps: nil"
 
     }
 
-    [[ $1 = .o ]] && {
+    [[ $1 = -o ]] && {
 
         [[ $orphans ]] && {
             echo "$red${bold}orphans (${#orphans[@]})$reset"
             atlas .render orphans null "$red"
-        :;} || [[ $cmds =~ i ]] || {
-            echo "$dim∴ orphans: nil$reset$n"
-            atlas .emit i
-        }
+        :;} || [[ $cmds =~ i ]] || atlas .echo a "orphans: nil"
 
     }
 
-    [[ $1 = .s ]] && {
+    [[ $1 = -s ]] && {
 
         [[ -w $save_path ]] && {
             printf "%s$n" ${root[@]} > "$save_path/root"
             printf "%s$n" ${ids[@]} > "$save_path/ids"
             printf "%s$n" ${orphans[@]} > "$save_path/orphans"
 
-            [[ $cmds =~ i ]] || {
-                echo "$dim∴ saved$reset$n"
-                atlas .emit i
-            }
-        :;} || {
-            echo "$red⚠︎ huh…? use a proper save path$reset$n"
-            atlas .emit e
-        }
+            [[ $cmds =~ i ]] || atlas .echo a "saved"
+        :;} || atlas .echo e "huh…? use a proper save path"
 
     }
 
-    [[ $1 = .u ]] && {
+    [[ $1 = -u ]] && {
 
         [[ $cmds =~ i && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
-            atlas .await 2 "∷ scan for updates? {y/${bold}n$reset} " q
+            atlas .echo q "scan for updates?"
 
             [[ ${REPLY,} = y ]] && {
                 $(type -P yay || type -P paru || echo "$auth pacman") -Syu
@@ -138,12 +125,12 @@ atlas() {
                 }
             }
 
-            atlas .await 0
+            atlas .veil 0
         }
 
     }
 
-    [[ $1 = .d ]] && {
+    [[ $1 = -d ]] && {
 
         local i
         local -A delta
@@ -157,7 +144,7 @@ atlas() {
                 delta[${i}1]=$(grep -vxFf "$save_path/$i" <(printf "%s$n" ${xarr[@]}))
 
                 [[ ${delta[${i}0]}${delta[${i}1]} ]] && {
-                    echo "$bold∵ $i difference$reset$n"
+                    atlas .echo i "$i difference"
 
                     [[ ${delta[${i}0]} ]] && printf " $dim◎ %s$reset$n" ${delta[${i}0]}
 
@@ -171,85 +158,130 @@ atlas() {
                 }
             done 2>/dev/null
 
-            [[ $cmds =~ i || ${delta[@]} =~ [^\ ] ]] || {
-                echo "$dim∴ difference: nil$reset$n"
-                atlas .emit i
-            }
-        :;} || [[ $cmds =~ s ]] || {
-            echo "$red⚠︎ you forgot to save…$reset$n"
-            atlas .emit e
-        }
+            [[ ${delta[@]} =~ [^\ ] ]] || [[ $cmds =~ i ]] || atlas .echo a "difference: nil"
+        :;} || [[ $cmds =~ s ]] || atlas .echo e "you forgot to save…"
 
     }
 
-    [[ $1 = .c ]] && {
+    [[ $1 = -c ]] && {
 
         local cache
 
         [[ $orphans ]] && {
-            atlas .await 2 "∷ remove orphans (${#orphans[@]})? {y/${bold}n$reset} " q
+            atlas .echo q "remove orphans (${#orphans[@]})?"
 
             [[ ${REPLY,} = y ]] && {
                 $auth pacman -Rns ${orphans[@]}
                 echo
             }
 
-            atlas .await 0
-        :;} || [[ $cmds =~ i ]] || {
-            echo "$dim∴ no orphans to remove$reset$n"
-            atlas .emit i
-        }
+            atlas .veil 0
+        :;} || [[ $cmds =~ i ]] || atlas .echo a "no orphans to remove"
 
         mapfile -t cache < <(pacman-conf CacheDir)
         local csize=$(du -shc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)
 
         [[ $csize != 0 ]] && {
             [[ $cmds =~ i ]] && (( cache_limit<<30 > $(numfmt --from=iec "$csize") )) || {
-                atlas .await 2 "∷ clear cache ($csize)? {y/${bold}n$reset} " q
+                atlas .echo q "clear cache ($csize)?"
 
                 [[ ${REPLY,} = y ]] && {
                     yes | $auth pacman -Scc &>/dev/null
-                    echo "$dim∴ updated cache size: $(du -shc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)$reset$n"
-                    atlas .emit i
+                    atlas .echo a "updated cache size: $(du -shc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)"
                 }
 
-                atlas .await 0
+                atlas .veil 0
             }
-        :;} || [[ $cmds =~ i ]] || {
-            echo "$dim∴ cache is empty$reset$n"
-            atlas .emit i
+        :;} || [[ $cmds =~ i ]] || atlas .echo a "cache is empty"
+
+    }
+
+    [[ $1 = -X ]] && {
+
+        atlas .echo w "are you sure?"
+
+        [[ ${REPLY,} = y ]] && atlas .suicide || atlas .echo a "…i'm flattered"
+
+        atlas .veil 0
+
+    }
+
+#  ├── core ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+
+    [[ $1 = .suicide ]] && {
+
+        rm -rf "$save_path"
+
+        grep -q ' //  ▲  \\\\ ' "$BASH_SOURCE" && sed -i '\L << A T \L A S >> L, \| //  ▲  \\\\ | d' "$BASH_SOURCE"
+        grep -q "atlas()" "$BASH_SOURCE" && {
+            atlas .echo e "feeling a little clingy, delete the source code yourself"
+        :;} || atlas .echo a "…bye"
+
+        atlas .signal 0
+        unset -f atlas
+
+        kill -2 $$
+
+    }
+
+    [[ $1 = .error ]] && {
+
+        local mode=$2
+
+        [[ $mode = c ]] && atlas .echo e "not sure what you mean, see 'atlas ?' for syntax"
+
+        [[ $mode = s ]] && {
+            atlas .echo i "atlas syntax"
+            echo " ╭── modifiers ──────────────╮"
+            echo " │ q  ·  quiet output        │"
+            echo " │ y  ·  auto confirm        │"
+            echo " │ i  ·  intelligent mode    │"
+            echo " ╰───────────────────────────╯$n"
+            echo " ╭── operations ─────────────╮"
+            echo " │ r  ·  view root           │"
+            echo " │ a  ·  view apps           │"
+            echo " │ o  ·  view orphans        │"
+            echo " │ s  ·  save system state   │"
+            echo " │ u  ·  upgrade system      │"
+            echo " │ d  ·  view difference     │"
+            echo " │ c  ·  system cleanup      │"
+            echo " │ X  ·  erase atlas         │"
+            echo " ╰───────────────────────────╯$n"
         }
 
-    }
-
-    [[ $1 = .X ]] && {
-
-        atlas .await 2 "$red⁘ are you sure? {y/${bold}n$reset$red}$reset " w
-
-        [[ ${REPLY,} = y ]] && atlas .suicide || echo "$dim∴ …i'm flattered$reset$n"
-
-        atlas .await 0
+        kill -2 $$
 
     }
-
-#  ├── engine ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
     [[ $1 = .signal ]] && {
 
         local stage=$2
 
         (( stage )) && {
-            atlas .await 0
+            atlas .veil 0
             trap '
                 atlas .pulse 0
                 atlas .signal 0
-                echo "$r$red⚠︎ atlas terminated$reset$clear$n"
-                atlas .emit e
+                atlas .echo e "atlas terminated"
                 kill -2 $$
             ' 2 15
         :;} || {
-            atlas .await 1
+            atlas .veil 1
             trap - 2 15
+        }
+
+    }
+
+    [[ $1 = .veil ]] && {
+
+        local stage=$2
+
+        (( stage )) && {
+            stty echo </dev/tty 2>/dev/null
+            echo -n "$show"
+        :;} || {
+            stty -echo 2>/dev/null
+            echo -n "$hide"
         }
 
     }
@@ -320,17 +352,16 @@ atlas() {
         (( stage )) && {
             while :
             do
-                for f in ◜ ◝ ◞ ◟ ○ ◎ ◉ ● ◉ ◎ ○ ○
+                for f in ◟ ◜ ◝ ◞ ○ ◎ ◉ ● ◉ ◎ ○
                 do
                     echo -n "$r$bold$f$reset"
                     sleep 0.0$delay_decimal
                 done
-            done &
-            pulse=$!
-            disown $!
+            done &async[pulse]=$!
+            disown ${async[pulse]}
         :;} 2>/dev/null || {
             echo -n "$r$clear"
-            kill $pulse
+            kill ${async[pulse]}
         } 2>/dev/null
 
     }
@@ -404,102 +435,40 @@ atlas() {
 
     }
 
-    [[ $1 = .await ]] && {
+    [[ $1 = .echo ]] && {
 
-        local stage=$2 prompt=$3 id=$4
-
-        (( stage )) && {
-            echo -n "$show"
-            stty echo </dev/tty
-        :;} 2>/dev/null || {
-            stty -echo
-            echo -n "$hide"
-        } 2>/dev/null
-
-        (( stage > 1 )) && {
-            [[ $cmds =~ y ]] && REPLY=y || {
-                while read -t 0
-                do read
-                done
-
-                echo -n "$prompt"
-                atlas .emit $id
-                read -s -n 1
-                echo -n "$r$clear"
-            }
-        }
-
-    }
-
-    [[ $1 = .emit ]] && {
-
-        local id=$2
-
-        [[ $id = i ]] && id=dialog-information
-        [[ $id = q ]] && id=dialog-question
-        [[ $id = w ]] && id=dialog-warning
-        [[ $id = e ]] && id=dialog-error
+        local scmds=$2 msg=$3
 
         [[ $cmds =~ q ]] || {
-            kill $emit
-            canberra-gtk-play -i $id &
-            emit=$!
-            disown $!
+            kill ${async[sound]}
+
+            {
+                [[ $scmds = a ]] && canberra-gtk-play -i window-attention
+                [[ $scmds = i ]] && canberra-gtk-play -i dialog-information
+                [[ $scmds = e ]] && canberra-gtk-play -i dialog-error
+                [[ $scmds = q ]] && canberra-gtk-play -i window-question
+                [[ $scmds = w ]] && canberra-gtk-play -i dialog-warning
+            } &async[sound]=$!
+            disown ${async[sound]}
         } 2>/dev/null
 
-    }
+        [[ $scmds = a ]] && echo "$dim∴ $msg$reset$n"
+        [[ $scmds = i ]] && echo "$bold∵ $msg$reset$n"
+        [[ $scmds = e ]] && echo "$red⚠︎ $msg$reset$n"
 
-    [[ $1 = .error ]] && {
+        REPLY=y
 
-        local mode=$2
+        [[ $scmds =~ [qw] && ! $cmds =~ y ]] && {
+            [[ $scmds = q ]] && echo -n "∷ $msg {y/${bold}n$reset}"
+            [[ $scmds = w ]] && echo -n "$red⁘ $msg {y/${bold}n$reset$red}$reset"
 
-        [[ $mode = c ]] && {
-            echo "$red⚠︎ not sure what you mean, see 'atlas ?' for syntax$reset"
-            atlas .emit e
+            atlas .veil 1
+            while read -t 0
+            do read
+            done
+            read -s -n 1
+            echo -n "$r$clear"
         }
-
-        [[ $mode = s ]] && {
-            echo "$bold∵ atlas syntax$reset$n"
-            echo " ╭── modifiers ──────────────╮"
-            echo " │ q  ·  quiet output        │"
-            echo " │ y  ·  auto confirm        │"
-            echo " │ i  ·  intelligent mode    │"
-            echo " ╰───────────────────────────╯$n"
-            echo " ╭── operations ─────────────╮"
-            echo " │ r  ·  view root           │"
-            echo " │ a  ·  view apps           │"
-            echo " │ o  ·  view orphans        │"
-            echo " │ s  ·  save system state   │"
-            echo " │ u  ·  upgrade system      │"
-            echo " │ d  ·  view difference     │"
-            echo " │ c  ·  system cleanup      │"
-            echo " │ X  ·  erase atlas         │"
-            echo " ╰───────────────────────────╯"
-        }
-
-        echo
-        kill -2 $$
-
-    }
-
-    [[ $1 = .suicide ]] && {
-
-        rm -rf "$save_path"
-
-        grep -q ' //  ▲  \\\\ ' "$BASH_SOURCE" && sed -i '\L << A T \L A S >> L, \| //  ▲  \\\\ | d' "$BASH_SOURCE"
-        grep -q "atlas()" "$BASH_SOURCE" && {
-            echo "$red⚠︎ feeling a little clingy, delete the source code yourself$reset"
-            atlas .emit e
-        :;} || {
-            echo "$dim∴ …bye$reset"
-            atlas .emit i
-        }
-
-        atlas .signal 0
-        unset -f atlas
-
-        echo
-        kill -2 $$
 
     }
 
