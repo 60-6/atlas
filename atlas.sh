@@ -7,7 +7,7 @@ atlas() {
     {
 
         local save_path="/tmp/atlas"
-        local default_commands=Iraogudc
+        local default_commands=Iraosudc
         local upgrade_interval=6
         local cache_limit=6
 
@@ -18,7 +18,7 @@ atlas() {
     (( executing - 66 )) && {
 
         local cmds=$1 executing=66 auth=$(type -P sudo || type -P doas)
-        local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[3G' n=$'\n' r=$'\r'
+        local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' n=$'\n' r=$'\r'
         local log scanned orphans root appnames apps
         local -A modified async lineage null
 
@@ -43,7 +43,7 @@ atlas() {
         [[ $cmds = \? ]] && {
             atlas .echo i "atlas syntax"
             echo " ╭── modifiers ──────────────╮"
-            echo " │ Q  ·  quiet output        │"
+            echo " │ Q  ·  quiet mode          │"
             echo " │ I  ·  implicit mode       │"
             echo " ╰───────────────────────────╯$n"
             echo " ╭── operations ─────────────╮"
@@ -51,16 +51,17 @@ atlas() {
             echo " │ a  ·  view apps           │"
             echo " │ i  ·  view app ids        │"
             echo " │ o  ·  view orphans        │"
-            echo " │ g  ·  generate save       │"
+            echo " │ s  ·  save system state   │"
             echo " │ u  ·  upgrade system      │"
             echo " │ d  ·  view difference     │"
             echo " │ c  ·  system cleanup      │"
+            echo " │ g  ·  generate system     │"
             echo " │ x  ·  erase atlas         │"
             echo " ╰───────────────────────────╯$n"
             kill -2 $$
         }
 
-        [[ ${cmds//[QIraiogudcx]} ]] && {
+        [[ ${cmds//[QIraiosudcgx]} ]] && {
             atlas .echo e "not sure what you mean, see 'atlas ?' for syntax"
             kill -2 $$
         }
@@ -124,7 +125,7 @@ atlas() {
 
     }
 
-    [[ $1 = .g ]] && {
+    [[ $1 = .s ]] && {
 
         mkdir -p "$save_path"
 
@@ -187,7 +188,7 @@ atlas() {
             done 2>/dev/null
 
             [[ ${delta[@]} =~ [^\ ] ]] || [[ $cmds =~ I ]] || atlas .echo a "difference: nil"
-        :;} || [[ $cmds =~ g ]] || atlas .echo e "you forgot to save…"
+        :;} || [[ $cmds =~ s ]] || atlas .echo e "you forgot to save…"
 
     }
 
@@ -221,6 +222,32 @@ atlas() {
                 atlas .veil 0
             }
         :;} || [[ $cmds =~ I ]] || atlas .echo a "cache is empty"
+
+    }
+
+    [[ $1 = .g ]] && {
+
+        atlas .echo w "make sure to set up aur and flathub if you need it, proceed?"
+
+        [[ ${REPLY,} = y ]] && {
+            [[ -r $save_path ]] && {
+                [[ -r $save_path/root ]] && {
+                    $(type -P yay || type -P paru || echo "$auth pacman") -S --needed $(< "$save_path/root")
+                    $auth pacman -D --asdeps $(pacman -Qqe)
+                    $auth pacman -D --asexplicit $(< "$save_path/root")
+                    $auth pacman -Rns $(pacman -Qqttd)
+                    echo
+                }
+
+                [[ -r $save_path/apps && $(type -P flatpak) ]] && {
+                    flatpak install $(< "$save_path/apps")
+                    flatpak remove $(grep -vxFf "$save_path/apps" <(flatpak list --app --columns=app))
+                    echo
+                }
+            :;} || atlas .echo e "couldn't find your save file"
+        }
+
+        atlas .veil 0
 
     }
 
@@ -307,12 +334,12 @@ atlas() {
         atlas .pulse 1
 
         {
-            [[ $scmds =~ [rogdc] ]] && {
+            [[ $scmds =~ [rosdc] ]] && {
                 atlas .echo s "scanning orphans"
                 orphans=( $(pacman -Qqtd) )
             }
 
-            [[ $scmds =~ [rgd] ]] && {
+            [[ $scmds =~ [rsd] ]] && {
                 atlas .echo s "scanning root"
                 root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
             }
@@ -322,7 +349,7 @@ atlas() {
                 mapfile -t appnames < <(flatpak list --app --columns=name)
             }
 
-            [[ $scmds =~ [igd] ]] && {
+            [[ $scmds =~ [isd] ]] && {
                 atlas .echo s "scanning app ids"
                 apps=( $(flatpak list --app --columns=app) )
             }
@@ -450,8 +477,8 @@ atlas() {
         }
 
         [[ $scmds = s ]] && {
-            echo -n "$origin$dim$msg…$reset$clear"
-            [[ $cmds =~ Q ]] || read -t 0.3
+            echo -n "$r  $dim$msg…$reset$clear"
+            [[ $cmds =~ Q ]] || read -t 0.6
         }
 
     }
@@ -474,4 +501,5 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
+
 
