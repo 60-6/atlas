@@ -480,7 +480,7 @@ atlas() {
 
         [[ $scmds = s ]] && {
             echo -n "$r  $dim$msg…$reset$clear"
-            [[ $cmds =~ Q ]] || read -t 0.6
+            [[ $cmds =~ Q ]] || read -t 0.3
         }
 
     }
