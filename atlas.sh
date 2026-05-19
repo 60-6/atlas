@@ -18,7 +18,7 @@ atlas() {
     (( executing - 66 )) && {
 
         local cmds=$1 executing=66 auth=$(type -P sudo || type -P doas)
-        local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' n=$'\n' r=$'\r'
+        local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[3G' n=$'\n' r=$'\r'
         local log scanned orphans root appnames apps
         local -A modified async lineage null
 
@@ -125,6 +125,8 @@ atlas() {
     }
 
     [[ $1 = .g ]] && {
+
+        mkdir -p "$save_path"
 
         [[ -w $save_path ]] && {
             printf "%s$n" ${root[@]} > "$save_path/root"
@@ -286,16 +288,11 @@ atlas() {
 
         local scmds=$2
 
-        [[ $scmds =~ r ]] && scmds+=l
-        [[ $scmds =~ g ]] && mkdir -p "$save_path" 2>/dev/null
-        [[ $scmds =~ g && -w $save_path || $scmds =~ d && -r $save_path ]] && scmds+=rio
-        scmds=${scmds/c/o}
-
         modified[l1]=$(stat -c %Y "$log")
         modified[f1]=$(stat -c %Y /var/lib/flatpak 2>/dev/null)
 
         [[ ${modified[l0]} = ${modified[l1]} ]] || {
-            scanned=${scanned//[rlo]}
+            scanned=${scanned//[ro]}
             modified[l0]=${modified[l1]}
         }
 
@@ -310,12 +307,12 @@ atlas() {
         atlas .pulse 1
 
         {
-            [[ $scmds =~ [ro] ]] && {
+            [[ $scmds =~ [rogdc] ]] && {
                 atlas .echo s "scanning orphans"
                 orphans=( $(pacman -Qqtd) )
             }
 
-            [[ $scmds =~ r ]] && {
+            [[ $scmds =~ [rgd] ]] && {
                 atlas .echo s "scanning root"
                 root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
             }
@@ -325,7 +322,7 @@ atlas() {
                 mapfile -t appnames < <(flatpak list --app --columns=name)
             }
 
-            [[ $scmds =~ i ]] && {
+            [[ $scmds =~ [igd] ]] && {
                 atlas .echo s "scanning app ids"
                 apps=( $(flatpak list --app --columns=app) )
             }
@@ -342,7 +339,6 @@ atlas() {
         local stage=$2
 
         (( stage )) && {
-            echo -n " "
             while :
             do
                 for f in ◟ ◜ ◝ ◞ ○ ◎ ◉ ● ◉ ◎ ○
@@ -363,7 +359,7 @@ atlas() {
 
         local scmds=$2 pkg opt
 
-        [[ $scmds =~ l && ! $cmds =~ Q ]] && {
+        [[ $scmds =~ r && ! $cmds =~ Q ]] && {
             atlas .echo s "extracting lineage"
             lineage=()
 
@@ -454,7 +450,7 @@ atlas() {
         }
 
         [[ $scmds = s ]] && {
-            echo -n " $dim$msg…$reset$clear"
+            echo -n "$origin$dim$msg…$reset$clear"
             [[ $cmds =~ Q ]] || read -t 0.3
         }
 
