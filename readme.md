@@ -9,6 +9,7 @@ dependencies: none
 installation: none, just paste into your .bashrc
 
 atlas is read-only unless it asks for your explicit permission, so you can mess with it safely.
+
 see 'atlas ?' for syntax.
 
 
