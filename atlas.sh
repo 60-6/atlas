@@ -7,10 +7,9 @@ atlas() {
     {
 
         local save_path="/tmp/atlas"
-        local default_commands=iraosudc
+        local default_commands=Iraogudc
         local upgrade_interval=6
         local cache_limit=6
-        local fake_delay=6
 
     }
 
@@ -18,10 +17,8 @@ atlas() {
 
     (( executing - 66 )) && {
 
-        local cmds=$1 executing=66
-        local mods="qyi" ops="raosudcX" auth=$(type -P sudo || type -P doas)
+        local cmds=$1 executing=66 auth=$(type -P sudo || type -P doas)
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' n=$'\n' r=$'\r'
-
         local log scanned orphans root appnames apps
         local -A modified async lineage null
 
@@ -41,10 +38,34 @@ atlas() {
             atlas .suicide
         }
 
-        [[ $cmds =~ \? ]] && atlas .error s
         cmds=${cmds//-}
-        [[ ${cmds//[$mods$ops]} ]] && atlas .error c
-        [[ ${cmds//[$mods]} ]] || cmds+=$default_commands
+
+        [[ $cmds = \? ]] && {
+            atlas .echo i "atlas syntax"
+            echo " ╭── modifiers ──────────────╮"
+            echo " │ Q  ·  quiet output        │"
+            echo " │ I  ·  implicit mode       │"
+            echo " ╰───────────────────────────╯$n"
+            echo " ╭── operations ─────────────╮"
+            echo " │ r  ·  view root           │"
+            echo " │ a  ·  view apps           │"
+            echo " │ i  ·  view app ids        │"
+            echo " │ o  ·  view orphans        │"
+            echo " │ g  ·  generate save       │"
+            echo " │ u  ·  upgrade system      │"
+            echo " │ d  ·  view difference     │"
+            echo " │ c  ·  system cleanup      │"
+            echo " │ x  ·  erase atlas         │"
+            echo " ╰───────────────────────────╯$n"
+            kill -2 $$
+        }
+
+        [[ ${cmds//[QIraiogudcx]} ]] && {
+            atlas .echo e "not sure what you mean, see 'atlas ?' for syntax"
+            kill -2 $$
+        }
+
+        [[ ${cmds//[QI]} ]] || cmds+=$default_commands
 
         log=$(pacman-conf LogFile)
 
@@ -56,8 +77,8 @@ atlas() {
 
         atlas .signal 1
 
-        atlas .scan ${cmds//[$mods]}
-        for i in $(fold -w1 <<< ${cmds//[$mods]})
+        atlas .scan $cmds
+        for i in $(fold -w1 <<< $cmds)
         do
             atlas .scan $i
             atlas .$i
@@ -81,7 +102,16 @@ atlas() {
         [[ $appnames ]] && {
             echo "${bold}apps (${#appnames[@]})$reset"
             atlas .render appnames null
-        :;} || [[ $cmds =~ i ]] || atlas .echo a "apps: nil"
+        :;} || [[ $cmds =~ I ]] || atlas .echo a "apps: nil"
+
+    }
+
+    [[ $1 = .i ]] && {
+
+        [[ $apps ]] && {
+            echo "${bold}app ids (${#apps[@]})$reset"
+            atlas .render apps null
+        :;} || [[ $cmds =~ I ]] || atlas .echo a "app ids: nil"
 
     }
 
@@ -90,25 +120,25 @@ atlas() {
         [[ $orphans ]] && {
             echo "$red${bold}orphans (${#orphans[@]})$reset"
             atlas .render orphans null "$red"
-        :;} || [[ $cmds =~ i ]] || atlas .echo a "orphans: nil"
+        :;} || [[ $cmds =~ I ]] || atlas .echo a "orphans: nil"
 
     }
 
-    [[ $1 = .s ]] && {
+    [[ $1 = .g ]] && {
 
         [[ -w $save_path ]] && {
             printf "%s$n" ${root[@]} > "$save_path/root"
             printf "%s$n" ${apps[@]} > "$save_path/apps"
             printf "%s$n" ${orphans[@]} > "$save_path/orphans"
 
-            [[ $cmds =~ i ]] || atlas .echo a "saved"
+            [[ $cmds =~ I ]] || atlas .echo a "saved"
         :;} || atlas .echo e "huh…? use a proper save path"
 
     }
 
     [[ $1 = .u ]] && {
 
-        [[ $cmds =~ i && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
+        [[ $cmds =~ I && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
             atlas .echo q "scan for updates?"
 
             [[ ${REPLY,} = y ]] && {
@@ -154,8 +184,8 @@ atlas() {
                 }
             done 2>/dev/null
 
-            [[ ${delta[@]} =~ [^\ ] ]] || [[ $cmds =~ i ]] || atlas .echo a "difference: nil"
-        :;} || [[ $cmds =~ s ]] || atlas .echo e "you forgot to save…"
+            [[ ${delta[@]} =~ [^\ ] ]] || [[ $cmds =~ I ]] || atlas .echo a "difference: nil"
+        :;} || [[ $cmds =~ g ]] || atlas .echo e "you forgot to save…"
 
     }
 
@@ -172,27 +202,27 @@ atlas() {
             }
 
             atlas .veil 0
-        :;} || [[ $cmds =~ i ]] || atlas .echo a "no orphans to remove"
+        :;} || [[ $cmds =~ I ]] || atlas .echo a "no orphans to remove"
 
         mapfile -t cache < <(pacman-conf CacheDir)
         local csize=$(du -shc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)
 
         [[ $csize != 0 ]] && {
-            [[ $cmds =~ i ]] && (( cache_limit<<30 > $(numfmt --from=iec "$csize") )) || {
+            [[ $cmds =~ I ]] && (( cache_limit<<30 > $(numfmt --from=iec "$csize") )) || {
                 atlas .echo q "clear cache ($csize)?"
 
                 [[ ${REPLY,} = y ]] && {
-                    yes | $auth pacman -Scc &>/dev/null
+                    yes | $auth pacman -Sc &>/dev/null
                     atlas .echo a "updated cache size: $(du -shc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)"
                 }
 
                 atlas .veil 0
             }
-        :;} || [[ $cmds =~ i ]] || atlas .echo a "cache is empty"
+        :;} || [[ $cmds =~ I ]] || atlas .echo a "cache is empty"
 
     }
 
-    [[ $1 = .X ]] && {
+    [[ $1 = .x ]] && {
 
         atlas .echo w "are you sure?"
 
@@ -215,36 +245,6 @@ atlas() {
 
         atlas .signal 0
         unset -f atlas
-
-        kill -2 $$
-
-    }
-
-    [[ $1 = .error ]] && {
-
-        local mode=$2
-
-        [[ $mode = c ]] && atlas .echo e "not sure what you mean, see 'atlas ?' for syntax"
-
-        [[ $mode = s ]] && {
-            atlas .echo i "atlas syntax"
-            echo " ╭── modifiers ──────────────╮"
-            echo " │ q  ·  quiet output        │"
-            echo " │ y  ·  auto confirm        │"
-            echo " │ i  ·  intelligent mode    │"
-            echo " ╰───────────────────────────╯$n"
-            echo " ╭── operations ─────────────╮"
-            echo " │ r  ·  view root           │"
-            echo " │ a  ·  view apps           │"
-            echo " │ o  ·  view orphans        │"
-            echo " │ s  ·  save system state   │"
-            echo " │ u  ·  upgrade system      │"
-            echo " │ d  ·  view difference     │"
-            echo " │ c  ·  system cleanup      │"
-            echo " │ X  ·  erase atlas         │"
-            echo " ╰───────────────────────────╯$n"
-        }
-
         kill -2 $$
 
     }
@@ -254,16 +254,16 @@ atlas() {
         local stage=$2
 
         (( stage )) && {
-            atlas .veil 0
             trap '
-                atlas .pulse 0
                 atlas .signal 0
+                atlas .pulse 0
                 atlas .echo e "atlas terminated"
                 kill -2 $$
             ' 2 15
+            atlas .veil 0
         :;} || {
-            atlas .veil 1
             trap - 2 15
+            atlas .veil 1
         }
 
     }
@@ -286,9 +286,9 @@ atlas() {
 
         local scmds=$2
 
-        [[ $scmds =~ r && ! $cmds =~ q ]] && scmds+=l
-        [[ $scmds =~ s ]] && mkdir -p "$save_path" 2>/dev/null
-        [[ $scmds =~ s && -w $save_path || $scmds =~ d && -r $save_path ]] && scmds+=rio
+        [[ $scmds =~ r ]] && scmds+=l
+        [[ $scmds =~ g ]] && mkdir -p "$save_path" 2>/dev/null
+        [[ $scmds =~ g && -w $save_path || $scmds =~ d && -r $save_path ]] && scmds+=rio
         scmds=${scmds/c/o}
 
         modified[l1]=$(stat -c %Y "$log")
@@ -311,27 +311,23 @@ atlas() {
 
         {
             [[ $scmds =~ [ro] ]] && {
-                echo -n "${dim}scanning orphans…$reset"
+                atlas .echo s "scanning orphans"
                 orphans=( $(pacman -Qqtd) )
-                atlas .chrono 13
             }
 
             [[ $scmds =~ r ]] && {
-                echo -n "${dim}scanning root…$reset$clear"
+                atlas .echo s "scanning root"
                 root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
-                atlas .chrono 13
             }
 
             [[ $scmds =~ a ]] && {
-                echo -n "${dim}scanning apps…$reset$clear"
+                atlas .echo s "scanning apps"
                 mapfile -t appnames < <(flatpak list --app --columns=name)
-                atlas .chrono 13
             }
 
             [[ $scmds =~ i ]] && {
-                echo -n "${dim}scanning app ids…$reset$clear"
+                atlas .echo s "scanning app ids"
                 apps=( $(flatpak list --app --columns=app) )
-                atlas .chrono 13
             }
 
             atlas .extract $scmds
@@ -346,13 +342,13 @@ atlas() {
         local stage=$2
 
         (( stage )) && {
-            echo -n "  "
+            echo -n " "
             while :
             do
                 for f in ◟ ◜ ◝ ◞ ○ ◎ ◉ ● ◉ ◎ ○
                 do
-                    echo -n "$r$bold$f$reset "
-                    atlas .chrono 115
+                    echo -n "$r$bold$f$reset"
+                    sleep 0.06
                 done
             done &async[pulse]=$!
         :;} 2>/dev/null || {
@@ -363,22 +359,13 @@ atlas() {
 
     }
 
-    [[ $1 = .chrono ]] && {
-
-        local denominator=$2
-
-        [[ $cmds =~ q ]] || read -t $(awk "BEGIN { print $fake_delay/$denominator }")
-
-    }
-
     [[ $1 = .extract ]] && {
 
         local scmds=$2 pkg opt
 
-        [[ $scmds =~ l ]] && {
-            echo -n "${dim}extracting lineage…$reset$clear"
+        [[ $scmds =~ l && ! $cmds =~ Q ]] && {
+            atlas .echo s "extracting lineage"
             lineage=()
-            atlas .chrono 13
 
             while read pkg opt
             do [[ " ${root[@]} " =~ " $opt " ]] && lineage[$pkg]+=" $opt "
@@ -424,14 +411,14 @@ atlas() {
         for i in "${xarr[@]}"
         do
             [[ ! $depth && ${arr[@]} =~ " $i " ]] || {
-                [[ $cmds =~ q ]] || {
+                [[ $cmds =~ Q ]] || {
                     [[ $depth ]] || echo "$attr│"
                     (( x )) || local xx=$([[ $depth ]] && echo ${#xarr[@]} || grep -cvxFf <(printf "%s$n" ${arr[@]}) <(printf "%s$n" "${xarr[@]}"))
                     (( ++x == xx )) && local pfx="╰─ " indent="   " || local pfx="├─ " indent="│  "
+                    read -t 0.006
                 }
 
                 echo "$attr$depth$pfx$i$reset"
-                atlas .chrono 666
 
                 local children=( ${arr[$i]} )
                 atlas .render children $arrn "$attr" "$depth$indent$dim"
@@ -452,15 +439,23 @@ atlas() {
         [[ $scmds = i ]] && echo "$bold∵ $msg$reset$n"
         [[ $scmds = e ]] && echo "$red⚠︎ $msg$reset$n"
 
-        REPLY=y
+        [[ $scmds = q ]] && {
+            echo -n "∷ $msg {y/${bold}n$reset} "
+            atlas .veil 1
+            [[ $cmds =~ I ]] && read -s -n 1 || REPLY=y
+            echo -n "$r$clear"
+        }
 
-        [[ $scmds =~ [qw] && ! $cmds =~ y ]] && {
-            [[ $scmds = q ]] && echo -n "∷ $msg {y/${bold}n$reset} "
-            [[ $scmds = w ]] && echo -n "$red⁘ $msg {y/${bold}n$reset$red}$reset "
-
+        [[ $scmds = w ]] && {
+            echo -n "$red⁘ $msg {y/${bold}n$reset$red}$reset "
             atlas .veil 1
             read -s -n 1
             echo -n "$r$clear"
+        }
+
+        [[ $scmds = s ]] && {
+            echo -n " $dim$msg…$reset$clear"
+            [[ $cmds =~ Q ]] || read -t 0.3
         }
 
     }
@@ -470,11 +465,11 @@ atlas() {
         local scmds=$2
         local -A ids=( [a]=window-attention [i]=dialog-information [e]=dialog-error [q]=window-question [w]=dialog-warning )
 
-        [[ $cmds =~ q ]] || {
+        [[ $cmds =~ Q ]] || {
             kill -- -${async[emit]}
             canberra-gtk-play -i ${ids[$scmds]} &async[emit]=$!
             disown ${async[emit]}
-        } 2>/dev/null
+        } &>/dev/null
 
     }
 
@@ -483,3 +478,4 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
+
