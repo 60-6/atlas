@@ -33,7 +33,7 @@ atlas() {
 
     [[ $1 = :resolve ]] && {
 
-        pacman -Q base &>/dev/null || {
+        [[ $(type -P pacman) ]] || {
             atlas .echo a "you're not even using arch silly"
             atlas .suicide
         }
@@ -227,7 +227,9 @@ atlas() {
 
     [[ $1 = .g ]] && {
 
-        atlas .echo w "make sure to set up aur and flathub if you need it, proceed?"
+        atlas .echo e "this might brick your system if you're doing some funny cross distro shit, so i hope you understand the risk"
+        atlas .echo e "also, make sure to set up aur and flathub if you need it"
+        atlas .echo w "proceed?"
 
         [[ ${REPLY,} = y ]] && {
             [[ -r $save_path ]] && {
