@@ -8,7 +8,7 @@ dependencies: none
 
 installation: none, just paste into your .bashrc
 
-atlas is read-only unless it asks for your explicit permission, so you can mess with it safely.
+atlas is read-only unless it asks for your permission, so you can mess with it safely.
 
 see 'atlas ?' for syntax.
 
@@ -17,11 +17,11 @@ see 'atlas ?' for syntax.
 
 viewing, upgrading, and cleaning your system.
 
-the real trick is the save file, 'atlas s' writes the heart of your system to disk, 'atlas g' regenerates from it.
+atlas can also be used to declare your system, 'atlas s' writes the heart of your system to a save path, 'atlas g' regenerates from it.
 
 you can edit the save, copy it between machines, whatever, then rebuild from it whenever you want.
 
-basically, arch turned into nixos without the bullshit of nixos.
+basically, arch turned into nixos without the extra nixos bullshit.
 
 
 ## extra
