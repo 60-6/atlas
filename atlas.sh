@@ -18,7 +18,7 @@ atlas() {
     (( executing - 66 )) && {
 
         local cmds=$1 executing=66 auth=$(type -P sudo || type -P doas)
-        local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' n=$'\n' r=$'\r'
+        local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[3G' n=$'\n' r=$'\r'
         local appnames apps log orphans root scanned
         local -A async lineage modified null
 
@@ -34,7 +34,7 @@ atlas() {
     [[ $1 = :resolve ]] && {
 
         [[ $(type -P pacman) ]] || {
-            atlas .echo i2 "you're not even using arch silly"
+            atlas .echo i0 "you're not even using arch silly"
             atlas .suicide
         }
 
@@ -62,7 +62,7 @@ atlas() {
         }
 
         [[ ${cmds//[acdgiorsuxIQ]} ]] && {
-            atlas .echo i2 "not sure what you mean, see 'atlas ?' for syntax"
+            atlas .echo i0 "not sure what you mean, see 'atlas ?' for syntax"
             kill -2 $$
         }
 
@@ -96,7 +96,7 @@ atlas() {
         [[ $appnames ]] && {
             echo "${bold}apps (${#appnames[@]})$reset"
             atlas .render appnames null
-        :;} || atlas .echo i0 "apps: nil"
+        :;} || atlas .echo i3 "apps: nil"
 
     }
 
@@ -105,7 +105,7 @@ atlas() {
         local cache
 
         [[ $orphans ]] && {
-            atlas .echo q0 "remove orphans (${#orphans[@]})?"
+            atlas .echo q1 "remove orphans (${#orphans[@]})?"
 
             [[ ${REPLY,} = y ]] && {
                 $auth pacman -Rns ${orphans[@]}
@@ -113,14 +113,14 @@ atlas() {
             }
 
             atlas .veil 0
-        :;} || atlas .echo i0 "no orphans to remove"
+        :;} || atlas .echo i3 "no orphans to remove"
 
         mapfile -t cache < <(pacman-conf CacheDir)
         local csize0=$(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)
 
         [[ $csize0 != 0 ]] && {
             [[ $cmds =~ I ]] && (( cache_limit<<30 > csize0 )) || {
-                atlas .echo q0 "clear cache ($(numfmt --to=iec "$csize0"))?"
+                atlas .echo q1 "clear cache ($(numfmt --to=iec "$csize0"))?"
 
                 [[ ${REPLY,} = y ]] && {
                     yes | $auth pacman -Sc &>/dev/null
@@ -130,7 +130,7 @@ atlas() {
 
                 atlas .veil 0
             }
-        :;} || atlas .echo i0 "cache is empty"
+        :;} || atlas .echo i3 "cache is empty"
 
     }
 
@@ -162,16 +162,16 @@ atlas() {
                 }
             done 2>/dev/null
 
-            [[ ${delta[@]} =~ [^\ ] ]] || atlas .echo i0 "difference: nil"
-        :;} || [[ $cmds =~ s ]] || atlas .echo i2 "you forgot to save…"
+            [[ ${delta[@]} =~ [^\ ] ]] || atlas .echo i3 "difference: nil"
+        :;} || [[ $cmds =~ s ]] || atlas .echo i0 "you forgot to save…"
 
     }
 
     [[ $1 = .g ]] && {
 
-        atlas .echo i2 "this might brick your system if you're doing some funny cross distro shit, so i hope you understand the risk"
-        atlas .echo i2 "also, make sure to set up aur and flathub if you need it"
-        atlas .echo q1 "proceed?"
+        atlas .echo i0 "this might brick your system if you're doing some funny cross distro shit, so i hope you understand the risk"
+        atlas .echo i0 "also, make sure to set up aur and flathub if you need it"
+        atlas .echo q0 "proceed?"
 
         [[ ${REPLY,} = y ]] && {
             [[ -r $save_path ]] && {
@@ -188,7 +188,7 @@ atlas() {
                     flatpak remove $(grep -vxFf "$save_path/apps" <(flatpak list --app --columns=app))
                     echo
                 }
-            :;} || atlas .echo i2 "couldn't find your save file"
+            :;} || atlas .echo i0 "couldn't find your save file"
         }
 
         atlas .veil 0
@@ -200,7 +200,7 @@ atlas() {
         [[ $apps ]] && {
             echo "${bold}app ids (${#apps[@]})$reset"
             atlas .render apps null
-        :;} || atlas .echo i0 "app ids: nil"
+        :;} || atlas .echo i3 "app ids: nil"
 
     }
 
@@ -209,7 +209,7 @@ atlas() {
         [[ $orphans ]] && {
             echo "$red${bold}orphans (${#orphans[@]})$reset"
             atlas .render orphans null "$red"
-        :;} || atlas .echo i0 "orphans: nil"
+        :;} || atlas .echo i3 "orphans: nil"
 
     }
 
@@ -229,15 +229,15 @@ atlas() {
             printf "%s$n" ${apps[@]} > "$save_path/apps"
             printf "%s$n" ${orphans[@]} > "$save_path/orphans"
 
-            atlas .echo i0 "saved"
-        :;} || atlas .echo i2 "huh…? use a proper save path"
+            atlas .echo i3 "saved"
+        :;} || atlas .echo i0 "huh…? use a proper save path"
 
     }
 
     [[ $1 = .u ]] && {
 
         [[ $cmds =~ I && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
-            atlas .echo q0 "scan for updates?"
+            atlas .echo q1 "scan for updates?"
 
             [[ ${REPLY,} = y ]] && {
                 $(type -P yay || type -P paru || echo "$auth pacman") -Syu
@@ -256,9 +256,9 @@ atlas() {
 
     [[ $1 = .x ]] && {
 
-        atlas .echo q1 "are you sure?"
+        atlas .echo q0 "are you sure?"
 
-        [[ ${REPLY,} = y ]] && atlas .suicide || atlas .echo i0 "…i'm flattered"
+        [[ ${REPLY,} = y ]] && atlas .suicide || atlas .echo i3 "…i'm flattered"
 
         atlas .veil 0
 
@@ -281,9 +281,9 @@ atlas() {
 
         local scmds=$2 msg=$3
 
-        [[ $scmds = i0 && ! $cmds =~ I ]] && {
-            echo "$dim○ $msg$reset$n"
-            atlas .emit a
+        [[ $scmds = i0 ]] && {
+            echo "$red⚠︎ $msg$reset$n"
+            atlas .emit e
         }
 
         [[ $scmds = i1 ]] && {
@@ -292,19 +292,16 @@ atlas() {
         }
 
         [[ $scmds = i2 ]] && {
-            echo "$red⚠︎ $msg$reset$n"
-            atlas .emit e
+            echo -n "$origin$dim$msg…$reset$clear"
+            [[ $cmds =~ Q ]] || read -t 0.3
+        }
+
+        [[ $scmds = i3 && ! $cmds =~ I ]] && {
+            echo "$dim○ $msg$reset$n"
+            atlas .emit a
         }
 
         [[ $scmds = q0 ]] && {
-            echo -n "◎ $msg {y/${bold}n$reset} "
-            atlas .emit q
-            atlas .veil 1
-            [[ $cmds =~ I ]] && read -s -n 1 || REPLY=y
-            echo -n "$r$clear"
-        }
-
-        [[ $scmds = q1 ]] && {
             echo -n "$red⚠︎ $msg {y/${bold}n$reset$red}$reset "
             atlas .emit w
             atlas .veil 1
@@ -312,10 +309,12 @@ atlas() {
             echo -n "$r$clear"
         }
 
-        [[ $scmds = s ]] && {
-            echo -n "$r  $dim$msg…$reset$clear"
-            atlas .emit s
-            [[ $cmds =~ Q ]] || read -t 0.3
+        [[ $scmds = q1 ]] && {
+            echo -n "◎ $msg {y/${bold}n$reset} "
+            atlas .emit q
+            atlas .veil 1
+            [[ $cmds =~ I ]] && read -s -n 1 || REPLY=y
+            echo -n "$r$clear"
         }
 
     }
@@ -338,7 +337,7 @@ atlas() {
         local scmds=$2 pkg opt
 
         [[ $scmds =~ r && ! $cmds =~ Q ]] && {
-            atlas .echo s "extracting lineage"
+            atlas .echo i2 "extracting lineage"
             lineage=()
 
             while read pkg opt
@@ -437,22 +436,22 @@ atlas() {
 
         {
             [[ $scmds =~ [ocrsd] ]] && {
-                atlas .echo s "scanning orphans"
+                atlas .echo i2 "scanning orphans"
                 orphans=( $(pacman -Qqtd) )
             }
 
             [[ $scmds =~ [rsd] ]] && {
-                atlas .echo s "scanning root"
+                atlas .echo i2 "scanning root"
                 root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
             }
 
             [[ $scmds =~ [isd] ]] && {
-                atlas .echo s "scanning app ids"
+                atlas .echo i2 "scanning app ids"
                 apps=( $(flatpak list --app --columns=app) )
             }
 
             [[ $scmds =~ a ]] && {
-                atlas .echo s "scanning apps"
+                atlas .echo i2 "scanning apps"
                 mapfile -t appnames < <(flatpak list --app --columns=name)
             }
 
@@ -471,7 +470,7 @@ atlas() {
             trap '
                 atlas .signal 0
                 atlas .pulse 0
-                atlas .echo i2 "atlas terminated"
+                atlas .echo i0 "atlas terminated"
                 kill -2 $$
             ' 2 15
             atlas .veil 0
@@ -488,8 +487,8 @@ atlas() {
 
         grep -q ' //  ▲  \\\\ ' "$BASH_SOURCE" && sed -i '\L << A T \L A S >> L, \| //  ▲  \\\\ | d' "$BASH_SOURCE"
         grep -q "atlas()" "$BASH_SOURCE" && {
-            atlas .echo i2 "feeling a little clingy, delete the source code yourself"
-        :;} || atlas .echo i0 "…bye"
+            atlas .echo i0 "feeling a little clingy, delete the source code yourself"
+        :;} || atlas .echo i3 "…bye"
 
         atlas .signal 0
         unset -f atlas
