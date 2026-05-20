@@ -297,23 +297,26 @@ atlas() {
         }
 
         [[ $scmds = i3 && ! $cmds =~ I ]] && {
-            echo "$dim○ $msg$reset$n"
+            echo "$dim∴ $msg$reset$n"
             atlas .emit a
         }
 
         [[ $scmds = q0 ]] && {
             echo -n "$red⚠︎ $msg {y/${bold}n$reset$red}$reset "
-            atlas .emit w
             atlas .veil 1
+            atlas .emit w
             read -s -n 1
             echo -n "$r$clear"
         }
 
         [[ $scmds = q1 ]] && {
-            echo -n "◎ $msg {y/${bold}n$reset} "
-            atlas .emit q
+            echo -n "∷ $msg {y/${bold}n$reset} "
             atlas .veil 1
-            [[ $cmds =~ I ]] && read -s -n 1 || REPLY=y
+            REPLY=y
+            [[ $cmds =~ I ]] && {
+                atlas .emit q
+                read -s -n 1
+            }
             echo -n "$r$clear"
         }
 
@@ -515,3 +518,5 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
+
+
