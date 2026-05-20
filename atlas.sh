@@ -44,19 +44,19 @@ atlas() {
             atlas .echo i1 "atlas syntax"
             echo " ╭── operations ─────────────╮"
             echo " │ a  ·  view apps           │"
-            echo " │ c  ·  system cleanup      │"
+            echo " │ c  ·  cleanup             │"
             echo " │ d  ·  view difference     │"
             echo " │ g  ·  generate system     │"
             echo " │ i  ·  view app ids        │"
             echo " │ o  ·  view orphans        │"
             echo " │ r  ·  view root           │"
-            echo " │ s  ·  save system state   │"
-            echo " │ u  ·  upgrade system      │"
+            echo " │ s  ·  save system         │"
+            echo " │ u  ·  upgrade             │"
             echo " │ x  ·  erase atlas         │"
             echo " ╰───────────────────────────╯$n"
             echo " ╭── modifiers ──────────────╮"
-            echo " │ I  ·  implicit mode       │"
-            echo " │ Q  ·  quiet mode          │"
+            echo " │ I  ·  implicit            │"
+            echo " │ Q  ·  quick               │"
             echo " ╰───────────────────────────╯$n"
             kill -2 $$
         }
@@ -112,7 +112,7 @@ atlas() {
                 echo
             }
 
-            atlas .veil 0
+            atlas .await 0
         :;} || atlas .echo i2 "no orphans to remove"
 
         mapfile -t cache < <(pacman-conf CacheDir)
@@ -129,7 +129,7 @@ atlas() {
                 :;} || atlas .echo i2 "nothing to clear"
             }
 
-            atlas .veil 0
+            atlas .await 0
         }
 
     }
@@ -169,9 +169,7 @@ atlas() {
 
     [[ $1 = .g ]] && {
 
-        atlas .echo i0 "this might brick your system if you're doing some funny cross distro shit, so i hope you understand the risk"
-        atlas .echo i0 "also, make sure to set up aur and flathub if you need it"
-        atlas .echo q0 "proceed?"
+        atlas .echo q0 "this might be risky, set up aur and flathub if you need. proceed?"
 
         [[ ${REPLY,} = y ]] && {
             [[ -r $save_path ]] && {
@@ -191,7 +189,7 @@ atlas() {
             :;} || atlas .echo i0 "couldn't find your save file"
         }
 
-        atlas .veil 0
+        atlas .await 0
 
     }
 
@@ -230,7 +228,7 @@ atlas() {
             printf "%s$n" ${orphans[@]} > "$save_path/orphans"
 
             atlas .echo i2 "saved"
-        :;} || atlas .echo i0 "huh…? use a proper save path"
+        :;} || atlas .echo i0 "…? use a proper save path"
 
     }
 
@@ -249,7 +247,7 @@ atlas() {
                 }
             }
 
-            atlas .veil 0
+            atlas .await 0
         }
 
     }
@@ -260,11 +258,25 @@ atlas() {
 
         [[ ${REPLY,} = y ]] && atlas .suicide || atlas .echo i2 "…i'm flattered"
 
-        atlas .veil 0
+        atlas .await 0
 
     }
 
 #  ├── core ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+
+    [[ $1 = .await ]] && {
+
+        local stage=$2
+
+        (( stage )) && {
+            stty echo </dev/tty 2>/dev/null
+            echo -n "$show"
+        :;} || {
+            stty -echo 2>/dev/null
+            echo -n "$hide"
+        }
+
+    }
 
     [[ $1 = .cycle ]] && {
 
@@ -279,39 +291,39 @@ atlas() {
 
     [[ $1 = .echo ]] && {
 
-        local scmds=$2 msg=$3
+        local scmds=$2 say=$3
 
         [[ $scmds = i0 ]] && {
-            echo "$red⚠︎ $msg$reset$n"
+            echo "$red⚠︎ $say$reset$n"
             atlas .emit e
         }
 
         [[ $scmds = i1 ]] && {
-            echo "$bold「 $msg 」$reset$n"
+            echo "$bold「 $say 」$reset$n"
             atlas .emit i
         }
 
         [[ $scmds = i2 && ! $cmds =~ I ]] && {
-            echo "$dim∴ $msg$reset$n"
+            echo "$dim∴ $say$reset$n"
             atlas .emit a
         }
 
         [[ $scmds = i3 ]] && {
-            echo -n "$origin$dim$msg…$reset$clear"
+            echo -n "$origin$dim$say…$reset$clear"
             [[ $cmds =~ Q ]] || read -t 0.3
         }
 
         [[ $scmds = q0 ]] && {
-            echo -n "$red⚠︎ $msg {y/${bold}n$reset$red}$reset "
-            atlas .veil 1
+            echo -n "$red⚠︎ $say {y/${bold}n$reset$red}$reset "
+            atlas .await 1
             atlas .emit w
             read -s -n 1
             echo -n "$r$clear"
         }
 
         [[ $scmds = q1 ]] && {
-            echo -n "∷ $msg {y/${bold}n$reset} "
-            atlas .veil 1
+            echo -n "∷ $say {y/${bold}n$reset} "
+            atlas .await 1
             REPLY=y
             [[ $cmds =~ I ]] && {
                 atlas .emit q
@@ -375,7 +387,7 @@ atlas() {
         (( stage )) && {
             while :
             do
-                for f in ◟ ◜ ◝ ◞ ○ ◎ ◉ ● ◉ ◎ ○
+                for f in ◟ ◜ ◝ ◞ ○ ◉ ● ◉ ○
                 do
                     echo -n "$r$bold$f$reset"
                     sleep 0.06
@@ -476,10 +488,10 @@ atlas() {
                 atlas .echo i0 "atlas terminated"
                 kill -2 $$
             ' 2 15
-            atlas .veil 0
+            atlas .await 0
         :;} || {
             trap - 2 15
-            atlas .veil 1
+            atlas .await 1
         }
 
     }
@@ -490,7 +502,7 @@ atlas() {
 
         grep -q ' //  ▲  \\\\ ' "$BASH_SOURCE" && sed -i '\L << A T \L A S >> L, \| //  ▲  \\\\ | d' "$BASH_SOURCE"
         grep -q "atlas()" "$BASH_SOURCE" && {
-            atlas .echo i0 "feeling a little clingy, delete the source code yourself"
+            atlas .echo i0 "delete the source code yourself"
         :;} || atlas .echo i2 "…bye"
 
         atlas .signal 0
@@ -499,24 +511,9 @@ atlas() {
 
     }
 
-    [[ $1 = .veil ]] && {
-
-        local stage=$2
-
-        (( stage )) && {
-            stty echo </dev/tty 2>/dev/null
-            echo -n "$show"
-        :;} || {
-            stty -echo 2>/dev/null
-            echo -n "$hide"
-        }
-
-    }
-
 #  ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
-
 
