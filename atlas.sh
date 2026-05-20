@@ -6,7 +6,7 @@ atlas() {
 
     {
 
-        local save_path="/tmp/atlas"
+        local save_directory="/tmp/atlas"
         local default_commands=raosudcI
         local upgrade_interval=6
         local cache_limit=6
@@ -139,13 +139,13 @@ atlas() {
         local i
         local -A delta
 
-        [[ -r $save_path ]] && {
+        [[ -r $save_directory ]] && {
             for i in root apps orphans
             do
                 local -n xarr=$i
 
-                delta[${i}0]=$(grep -vxFf <(printf "%s$n" ${xarr[@]}) "$save_path/$i")
-                delta[${i}1]=$(grep -vxFf "$save_path/$i" <(printf "%s$n" ${xarr[@]}))
+                delta[${i}0]=$(grep -vxFf <(printf "%s$n" ${xarr[@]}) "$save_directory/$i")
+                delta[${i}1]=$(grep -vxFf "$save_directory/$i" <(printf "%s$n" ${xarr[@]}))
 
                 [[ ${delta[${i}0]}${delta[${i}1]} ]] && {
                     atlas .echo i1 "$i difference"
@@ -169,27 +169,28 @@ atlas() {
 
     [[ $1 = .g ]] && {
 
-        atlas .echo q0 "this might be risky, set up aur and flathub if you need. proceed?"
+        [[ -r $save_directory ]] && {
+            atlas .echo i0 "this carries some risk"
+            atlas .echo q0 "set up aur and flathub if you need, proceed?"
 
-        [[ ${REPLY,} = y ]] && {
-            [[ -r $save_path ]] && {
-                [[ -r $save_path/root ]] && {
-                    $(type -P yay || type -P paru || echo "$auth pacman") -S --needed $(< "$save_path/root")
+            [[ ${REPLY,} = y ]] && {
+                [[ -s $save_directory/root ]] && {
+                    $(type -P yay || type -P paru || echo "$auth pacman") -S --needed $(< "$save_directory/root")
                     $auth pacman -D --asdeps $(pacman -Qqe)
-                    $auth pacman -D --asexplicit $(< "$save_path/root")
+                    $auth pacman -D --asexplicit $(< "$save_directory/root")
                     $auth pacman -Rns $(pacman -Qqttd)
                     echo
                 }
 
-                [[ -r $save_path/apps && $(type -P flatpak) ]] && {
-                    flatpak install $(< "$save_path/apps")
-                    flatpak remove $(grep -vxFf "$save_path/apps" <(flatpak list --app --columns=app))
+                [[ -s $save_directory/apps ]] && {
+                    flatpak install $(< "$save_directory/apps")
+                    flatpak remove $(grep -vxFf "$save_directory/apps" <(flatpak list --app --columns=app))
                     echo
                 }
-            :;} || atlas .echo i0 "couldn't find your save file"
-        }
+            }
 
-        atlas .await 0
+            atlas .await 0
+        :;} || atlas .echo i0 "couldn't find your save directory"
 
     }
 
@@ -220,12 +221,12 @@ atlas() {
 
     [[ $1 = .s ]] && {
 
-        mkdir -p "$save_path"
+        mkdir -p "$save_directory"
 
-        [[ -w $save_path ]] && {
-            printf "%s$n" ${root[@]} > "$save_path/root"
-            printf "%s$n" ${apps[@]} > "$save_path/apps"
-            printf "%s$n" ${orphans[@]} > "$save_path/orphans"
+        [[ -w $save_directory ]] && {
+            printf "%s$n" ${root[@]} > "$save_directory/root"
+            printf "%s$n" ${apps[@]} > "$save_directory/apps"
+            printf "%s$n" ${orphans[@]} > "$save_directory/orphans"
 
             atlas .echo i2 "saved"
         :;} || atlas .echo i0 "…? use a proper save path"
@@ -498,7 +499,7 @@ atlas() {
 
     [[ $1 = .suicide ]] && {
 
-        rm -rf "$save_path"
+        rm -rf "$save_directory"
 
         grep -q ' //  ▲  \\\\ ' "$BASH_SOURCE" && sed -i '\L << A T \L A S >> L, \| //  ▲  \\\\ | d' "$BASH_SOURCE"
         grep -q "atlas()" "$BASH_SOURCE" && {
@@ -516,4 +517,3 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
-
