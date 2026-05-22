@@ -272,12 +272,12 @@ atlas() {
         local stage=$2
 
         (( stage )) && {
-            stty echo </dev/tty 2>/dev/null
+            stty echo </dev/tty
             echo -n "$show"
-        :;} || {
-            stty -echo 2>/dev/null
+        :;} 2>/dev/null || {
+            stty -echo
             echo -n "$hide"
-        }
+        } 2>/dev/null
 
     }
 
