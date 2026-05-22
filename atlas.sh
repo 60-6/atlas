@@ -170,25 +170,25 @@ atlas() {
     [[ $1 = .g ]] && {
 
         [[ -r $save_directory ]] && {
-            atlas .echo :0 "this carries some risk"
+            atlas .echo :0 "i hope you understand that this is risky"
             atlas .echo ?0 "set up aur and flathub if you need, proceed?"
 
             [[ ${REPLY,} = y ]] && {
-                [[ -s $save_directory/root ]] && {
-                    $(type -P yay || type -P paru || echo "$auth pacman") -S --needed $(< "$save_directory/root")
+                [[ -s $save_directory/root ]] && $(type -P yay || type -P paru || echo "$auth pacman") -S --needed $(< "$save_directory/root") && {
                     $auth pacman -D --asdeps $(pacman -Qqe)
                     $auth pacman -D --asexplicit $(< "$save_directory/root")
-                    $auth pacman -Rns $(pacman -Qqttd)
-                    echo
+                    local rdelta=$(pacman -Qqttd)
+                    [[ $rdelta ]] && $auth pacman -Rns $rdelta
                 }
 
-                [[ -s $save_directory/apps ]] && {
-                    flatpak install $(< "$save_directory/apps")
-                    local fdelta=$(grep -vxFf "$save_directory/apps" <(flatpak list --app --columns=app))
-                    [[ $fdelta ]] && flatpak remove $fdelta
+                [[ -s $save_directory/apps ]] && flatpak install $(< "$save_directory/apps") && {
+                    local adelta=$(grep -vxFf "$save_directory/apps" <(flatpak list --app --columns=app))
+                    [[ $adelta ]] && flatpak remove $adelta
                     flatpak remove --unused
-                    echo
                 }
+
+                echo
+                atlas .echo :1 "system regenerated, make sure there weren't any errors"
             }
 
             atlas .await 0
@@ -274,10 +274,10 @@ atlas() {
         (( stage )) && {
             stty echo </dev/tty
             echo -n "$show"
-        :;} 2>/dev/null || {
+        :;} || {
             stty -echo
             echo -n "$hide"
-        } 2>/dev/null
+        }
 
     }
 
@@ -295,6 +295,7 @@ atlas() {
     [[ $1 = .echo ]] && {
 
         local scmds=$2 say=$3
+        REPLY=y
 
         [[ $scmds = :0 ]] && {
             echo "$red⚠︎ $say$reset$n"
@@ -324,14 +325,11 @@ atlas() {
             echo -n "$r$clear"
         }
 
-        [[ $scmds = \?1 ]] && {
+        [[ $scmds = \?1 && $cmds =~ I ]] && {
             echo -n "✧ $say {y/${bold}n$reset} "
             atlas .await 1
-            REPLY=y
-            [[ $cmds =~ I ]] && {
-                atlas .emit q
-                read -s -n 1
-            }
+            atlas .emit q
+            read -s -n 1
             echo -n "$r$clear"
         }
 
@@ -519,4 +517,3 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
-
