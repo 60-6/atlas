@@ -6,7 +6,7 @@ atlas() {
 
     {
 
-        local save_directory="/tmp/atlas"
+        local save_directory="/tmp"
         local default_commands=raosudcI
         local upgrade_interval=6
         local cache_limit=6
@@ -295,7 +295,6 @@ atlas() {
     [[ $1 = .echo ]] && {
 
         local scmds=$2 say=$3
-        REPLY=y
 
         [[ $scmds = :0 ]] && {
             echo "$red⚠︎ $say$reset$n"
@@ -325,11 +324,14 @@ atlas() {
             echo -n "$r$clear"
         }
 
-        [[ $scmds = \?1 && $cmds =~ I ]] && {
+        [[ $scmds = \?1 ]] && {
             echo -n "✧ $say {y/${bold}n$reset} "
             atlas .await 1
-            atlas .emit q
-            read -s -n 1
+            REPLY=y
+            [[ $cmds =~ I ]] && {
+                atlas .emit q
+                read -s -n 1
+            }
             echo -n "$r$clear"
         }
 
@@ -388,9 +390,9 @@ atlas() {
         (( stage )) && {
             while :
             do
-                for f in ◟ ◜ ◝ ◞ ○ ◉ ● ◉ ○
+                for i in ◟ ◜ ◝ ◞ ○ ◉ ● ◉ ○
                 do
-                    echo -n "$r$bold$f$reset"
+                    echo -n "$r$bold$i$reset"
                     sleep 0.06
                 done
             done &async[pulse]=$!
@@ -517,3 +519,4 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
+
