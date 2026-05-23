@@ -38,6 +38,8 @@ atlas() {
             atlas .suicide
         }
 
+        [[ ${_1//[IQ]} ]] || _1+=$default_commands
+
         [[ $_1 = \? ]] && {
             atlas .echo :1 "atlas syntax"
             echo " ╭── operations ─────────────╮"
@@ -63,8 +65,6 @@ atlas() {
             atlas .echo :0 "not sure what you mean, see 'atlas ?' for syntax"
             kill -2 $$
         }
-
-        [[ ${_1//[IQ]} ]] || _1+=$default_commands
 
         log=$(pacman-conf LogFile)
 
