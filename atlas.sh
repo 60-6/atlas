@@ -17,7 +17,7 @@ atlas() {
 
     (( executing - 66 )) && {
 
-        local cmds=$1 executing=66 auth=$(type -P sudo || type -P doas)
+        local _1=$1 executing=66 auth=$(type -P sudo || type -P doas) save=$save_directory/atlas
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[3G' n=$'\n' r=$'\r'
         local appnames apps log orphans root scanned
         local -A async lineage modified null
@@ -38,9 +38,7 @@ atlas() {
             atlas .suicide
         }
 
-        cmds=${cmds//-}
-
-        [[ $cmds = \? ]] && {
+        [[ $_1 = \? ]] && {
             atlas .echo :1 "atlas syntax"
             echo " ╭── operations ─────────────╮"
             echo " │ a  ·  view apps           │"
@@ -61,12 +59,12 @@ atlas() {
             kill -2 $$
         }
 
-        [[ ${cmds//[acdgiorsuxIQ]} ]] && {
+        [[ ${_1//[acdgiorsuxIQ]} ]] && {
             atlas .echo :0 "not sure what you mean, see 'atlas ?' for syntax"
             kill -2 $$
         }
 
-        [[ ${cmds//[IQ]} ]] || cmds+=$default_commands
+        [[ ${_1//[IQ]} ]] || _1+=$default_commands
 
         log=$(pacman-conf LogFile)
 
@@ -78,8 +76,8 @@ atlas() {
 
         atlas .signal 1
 
-        atlas .scan $cmds
-        for i in $(fold -w1 <<< $cmds)
+        atlas .scan $_1
+        for i in $(fold -w1 <<< $_1)
         do
             atlas .scan $i
             atlas .$i
@@ -105,7 +103,7 @@ atlas() {
         local cache
 
         [[ $orphans ]] && {
-            atlas .echo ?1 "remove orphans (${#orphans[@]})?"
+            atlas .echo @1 "remove orphans (${#orphans[@]})?"
 
             [[ ${REPLY,} = y ]] && {
                 $auth pacman -Rns ${orphans[@]}
@@ -118,8 +116,8 @@ atlas() {
         mapfile -t cache < <(pacman-conf CacheDir)
         local csize=$(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)
 
-        [[ $cmds =~ I ]] && (( cache_limit<<30 > csize )) || {
-            atlas .echo ?1 "clear cache ($(numfmt --to=iec "$csize"))?"
+        [[ $_1 =~ I ]] && (( cache_limit<<30 > csize )) || {
+            atlas .echo @1 "clear cache ($(numfmt --to=iec "$csize"))?"
 
             [[ ${REPLY,} = y ]] && {
                 yes | $auth pacman -Sc &>/dev/null
@@ -139,13 +137,13 @@ atlas() {
         local i
         local -A delta
 
-        [[ -r $save_directory ]] && {
+        [[ -r $save ]] && {
             for i in root apps orphans
             do
                 local -n xarr=$i
 
-                delta[${i}0]=$(grep -vxFf <(printf "%s$n" ${xarr[@]}) "$save_directory/$i")
-                delta[${i}1]=$(grep -vxFf "$save_directory/$i" <(printf "%s$n" ${xarr[@]}))
+                delta[${i}0]=$(grep -vxFf <(printf "%s$n" ${xarr[@]}) "$save/$i")
+                delta[${i}1]=$(grep -vxFf "$save/$i" <(printf "%s$n" ${xarr[@]}))
 
                 [[ ${delta[${i}0]}${delta[${i}1]} ]] && {
                     atlas .echo :1 "$i difference"
@@ -163,26 +161,26 @@ atlas() {
             done 2>/dev/null
 
             [[ ${delta[@]} =~ [^\ ] ]] || atlas .echo :3 "difference: nil"
-        :;} || [[ $cmds =~ s ]] || atlas .echo :0 "you forgot to save…"
+        :;} || [[ $_1 =~ s ]] || atlas .echo :0 "you forgot to save…"
 
     }
 
     [[ $1 = .g ]] && {
 
-        [[ -r $save_directory ]] && {
+        [[ -r $save ]] && {
             atlas .echo :0 "i hope you understand that this is risky"
-            atlas .echo ?0 "set up aur and flathub if you need, proceed?"
+            atlas .echo @0 "set up aur and flathub if you need, proceed?"
 
             [[ ${REPLY,} = y ]] && {
-                [[ -s $save_directory/root ]] && $(type -P yay || type -P paru || echo "$auth pacman") -S --needed $(< "$save_directory/root") && {
+                [[ -s $save/root ]] && $(type -P yay || type -P paru || echo "$auth pacman") -S --needed $(< "$save/root") && {
                     $auth pacman -D --asdeps $(pacman -Qqe)
-                    $auth pacman -D --asexplicit $(< "$save_directory/root")
+                    $auth pacman -D --asexplicit $(< "$save/root")
                     local rdelta=$(pacman -Qqttd)
                     [[ $rdelta ]] && $auth pacman -Rns $rdelta
                 }
 
-                [[ -s $save_directory/apps ]] && flatpak install $(< "$save_directory/apps") && {
-                    local adelta=$(grep -vxFf "$save_directory/apps" <(flatpak list --app --columns=app))
+                [[ -s $save/apps ]] && flatpak install $(< "$save/apps") && {
+                    local adelta=$(grep -vxFf "$save/apps" <(flatpak list --app --columns=app))
                     [[ $adelta ]] && flatpak remove $adelta
                     flatpak remove --unused
                 }
@@ -223,12 +221,12 @@ atlas() {
 
     [[ $1 = .s ]] && {
 
-        mkdir -p "$save_directory"
+        mkdir -p "$save"
 
-        [[ -w $save_directory ]] && {
-            printf "%s$n" ${root[@]} > "$save_directory/root"
-            printf "%s$n" ${apps[@]} > "$save_directory/apps"
-            printf "%s$n" ${orphans[@]} > "$save_directory/orphans"
+        [[ -w $save ]] && {
+            printf "%s$n" ${root[@]} > "$save/root"
+            printf "%s$n" ${apps[@]} > "$save/apps"
+            printf "%s$n" ${orphans[@]} > "$save/orphans"
 
             atlas .echo :3 "saved"
         :;} || atlas .echo :0 "…? use a proper save path"
@@ -237,8 +235,8 @@ atlas() {
 
     [[ $1 = .u ]] && {
 
-        [[ $cmds =~ I && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
-            atlas .echo ?1 "scan for updates?"
+        [[ $_1 =~ I && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
+            atlas .echo @1 "scan for updates?"
 
             [[ ${REPLY,} = y ]] && {
                 $(type -P yay || type -P paru || echo "$auth pacman") -Syu
@@ -257,7 +255,7 @@ atlas() {
 
     [[ $1 = .x ]] && {
 
-        atlas .echo ?0 "are you sure?"
+        atlas .echo @0 "are you sure?"
 
         [[ ${REPLY,} = y ]] && atlas .suicide || atlas .echo :3 "…i'm flattered"
 
@@ -294,29 +292,29 @@ atlas() {
 
     [[ $1 = .echo ]] && {
 
-        local scmds=$2 say=$3
+        local cmds=$2 say=$3
 
-        [[ $scmds = :0 ]] && {
+        [[ $cmds = :0 ]] && {
             echo "$red⚠︎ $say$reset$n"
             atlas .emit e
         }
 
-        [[ $scmds = :1 ]] && {
+        [[ $cmds = :1 ]] && {
             echo "$bold「 $say 」$reset$n"
             atlas .emit i
         }
 
-        [[ $scmds = :2 ]] && {
+        [[ $cmds = :2 ]] && {
             echo -n "$origin$dim$say…$reset$clear"
-            [[ $cmds =~ Q ]] || read -t 0.3
+            [[ $_1 =~ Q ]] || read -t 0.3
         }
 
-        [[ $scmds = :3 && ! $cmds =~ I ]] && {
+        [[ $cmds = :3 && ! $_1 =~ I ]] && {
             echo "$dim∴ $say$reset$n"
             atlas .emit a
         }
 
-        [[ $scmds = \?0 ]] && {
+        [[ $cmds = @0 ]] && {
             echo -n "$red⚠︎ $say {y/${bold}n$reset$red}$reset "
             atlas .await 1
             atlas .emit w
@@ -324,11 +322,11 @@ atlas() {
             echo -n "$r$clear"
         }
 
-        [[ $scmds = \?1 ]] && {
+        [[ $cmds = @1 ]] && {
             echo -n "✧ $say {y/${bold}n$reset} "
             atlas .await 1
             REPLY=y
-            [[ $cmds =~ I ]] && {
+            [[ $_1 =~ I ]] && {
                 atlas .emit q
                 read -s -n 1
             }
@@ -339,12 +337,12 @@ atlas() {
 
     [[ $1 = .emit ]] && {
 
-        local scmds=$2
+        local cmds=$2
         local -A ids=( [a]=window-attention [i]=dialog-information [e]=dialog-error [q]=window-question [w]=dialog-warning )
 
-        [[ $cmds =~ Q ]] || {
+        [[ $_1 =~ Q ]] || {
             kill -- -${async[emit]}
-            canberra-gtk-play -i ${ids[$scmds]} &async[emit]=$!
+            canberra-gtk-play -i ${ids[$cmds]} &async[emit]=$!
             disown ${async[emit]}
         } &>/dev/null
 
@@ -352,9 +350,9 @@ atlas() {
 
     [[ $1 = .extract ]] && {
 
-        local scmds=$2 pkg opt
+        local cmds=$2 pkg opt
 
-        [[ $scmds =~ r && ! $cmds =~ Q ]] && {
+        [[ $cmds =~ r && ! $_1 =~ Q ]] && {
             atlas .echo :2 "extracting lineage"
             lineage=()
 
@@ -412,7 +410,7 @@ atlas() {
         for i in "${xarr[@]}"
         do
             [[ ! $depth && ${arr[@]} =~ " $i " ]] || {
-                [[ $cmds =~ Q ]] || {
+                [[ $_1 =~ Q ]] || {
                     [[ $depth ]] || echo "$attr│"
                     (( x )) || local xx=$([[ $depth ]] && echo ${#xarr[@]} || grep -cvxFf <(printf "%s$n" ${arr[@]}) <(printf "%s$n" "${xarr[@]}"))
                     (( ++x == xx )) && local pfx="╰─ " indent="   " || local pfx="├─ " indent="│  "
@@ -432,7 +430,7 @@ atlas() {
 
     [[ $1 = .scan ]] && {
 
-        local scmds=$2
+        local cmds=$2
 
         modified[l1]=$(stat -c %Y "$log")
         modified[f1]=$(stat -c %Y /var/lib/flatpak 2>/dev/null)
@@ -447,33 +445,33 @@ atlas() {
             modified[f0]=${modified[f1]}
         }
 
-        scmds=${scmds//[$scanned]}
-        scanned+=$scmds
+        cmds=${cmds//[$scanned]}
+        scanned+=$cmds
 
         atlas .pulse 1
 
         {
-            [[ $scmds =~ [ocrsd] ]] && {
+            [[ $cmds =~ [ocrsd] ]] && {
                 atlas .echo :2 "scanning orphans"
                 orphans=( $(pacman -Qqtd) )
             }
 
-            [[ $scmds =~ [rsd] ]] && {
+            [[ $cmds =~ [rsd] ]] && {
                 atlas .echo :2 "scanning root"
                 root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
             }
 
-            [[ $scmds =~ [isd] ]] && {
+            [[ $cmds =~ [isd] ]] && {
                 atlas .echo :2 "scanning app ids"
                 apps=( $(flatpak list --app --columns=app) )
             }
 
-            [[ $scmds =~ a ]] && {
+            [[ $cmds =~ a ]] && {
                 atlas .echo :2 "scanning apps"
                 mapfile -t appnames < <(flatpak list --app --columns=name)
             }
 
-            atlas .extract $scmds
+            atlas .extract $cmds
         } 2>/dev/null
 
         atlas .pulse 0
@@ -501,7 +499,7 @@ atlas() {
 
     [[ $1 = .suicide ]] && {
 
-        rm -rf "$save_directory"
+        rm -rf "$save"
 
         grep -q ' //  ▲  \\\\ ' "$BASH_SOURCE" && sed -i '\L << A T \L A S >> L, \| //  ▲  \\\\ | d' "$BASH_SOURCE"
         grep -q "atlas()" "$BASH_SOURCE" && {
@@ -519,4 +517,3 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
-
