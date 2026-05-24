@@ -377,7 +377,7 @@ atlas() {
 
         local cmds=$2 pkg opt
 
-        [[ $cmds =~ r && ! $_1 =~ Q ]] && {
+        [[ $cmds =~ l && ! $_1 =~ Q ]] && {
             atlas .echo :2 "extracting lineage"
             lineage=()
 
@@ -457,16 +457,20 @@ atlas() {
 
         local cmds=$2
 
+        cmds=${cmds/c/o}
+        cmds=${cmds/r/rl}
+        cmds=${cmds/[ds]/ior}
+
         modified[l1]=$(stat -c %Y "$log")
         modified[f1]=$(stat -c %Y /var/lib/flatpak 2>/dev/null)
 
         [[ ${modified[l0]} = ${modified[l1]} ]] || {
-            scanned=${scanned//[ro]}
+            scanned=${scanned//[lor]}
             modified[l0]=${modified[l1]}
         }
 
         [[ ${modified[f0]} = ${modified[f1]} ]] || {
-            scanned=${scanned//[ia]}
+            scanned=${scanned//[ai]}
             modified[f0]=${modified[f1]}
         }
 
@@ -476,24 +480,24 @@ atlas() {
         atlas .pulse 1
 
         {
-            [[ $cmds =~ [ocrsd] ]] && {
-                atlas .echo :2 "scanning orphans"
-                orphans=( $(pacman -Qqtd) )
+            [[ $cmds =~ a ]] && {
+                atlas .echo :2 "scanning apps"
+                mapfile -t appnames < <(flatpak list --app --columns=name)
             }
 
-            [[ $cmds =~ [rsd] ]] && {
-                atlas .echo :2 "scanning root"
-                root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
-            }
-
-            [[ $cmds =~ [isd] ]] && {
+            [[ $cmds =~ i ]] && {
                 atlas .echo :2 "scanning app ids"
                 apps=( $(flatpak list --app --columns=app) )
             }
 
-            [[ $cmds =~ a ]] && {
-                atlas .echo :2 "scanning apps"
-                mapfile -t appnames < <(flatpak list --app --columns=name)
+            [[ $cmds =~ o ]] && {
+                atlas .echo :2 "scanning orphans"
+                orphans=( $(pacman -Qqtd) )
+            }
+
+            [[ $cmds =~ r ]] && {
+                atlas .echo :2 "scanning root"
+                root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
             }
 
             atlas .extract $cmds
@@ -542,3 +546,4 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
+
