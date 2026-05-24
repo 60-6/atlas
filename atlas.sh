@@ -340,8 +340,7 @@ atlas() {
         local cmds=$2
         local -A ids=( [a]=window-attention [i]=dialog-information [e]=dialog-error [q]=window-question [w]=dialog-warning )
 
-        [[ $_1 =~ Q ]] || {
-            kill -- -${async[emit]}
+        [[ $_1 =~ Q ]] || kill -0 ${async[emit]} 2>/dev/null || {
             canberra-gtk-play -i ${ids[$cmds]} &async[emit]=$!
             disown ${async[emit]}
         } &>/dev/null
