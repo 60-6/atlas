@@ -103,7 +103,7 @@ atlas() {
         local cache
 
         [[ $orphans ]] && {
-            atlas .echo @1 "remove orphans (${#orphans[@]})?"
+            atlas .echo @1 "remove orphans?"
 
             [[ ${REPLY,} = y ]] && {
                 $auth pacman -Rns ${orphans[@]}
@@ -177,15 +177,38 @@ atlas() {
                     $auth pacman -D --asexplicit $(< "$save/root")
                     local rdelta=$(pacman -Qqttd)
                     [[ $rdelta ]] && $auth pacman -Rns $rdelta
+                    echo
                 }
 
                 [[ -s $save/apps ]] && flatpak install $(< "$save/apps") && {
                     local adelta=$(grep -vxFf "$save/apps" <(flatpak list --app --columns=app))
                     [[ $adelta ]] && flatpak remove $adelta
                     flatpak remove --unused
+                    echo
                 }
 
-                echo
+                [[ -d $save/overwrite ]] && {
+                    local dirs=( "$save/overwrite"/*/ ) dst i
+
+                    [[ -d $dirs ]] && {
+                        atlas .echo @0 "overwrite files (${#dirs[@]})?"
+
+                        [[ ${REPLY,} = y ]] && {
+                            for i in "${dirs[@]%/}"
+                            do
+                                dst=${i##*/}
+                                dst=${dst//:/\/}
+                                dst=${dst/#@/$HOME}
+
+                                $([[ -w $(dirname "$dst") ]] || echo $auth) mkdir -p "$dst"
+                                $([[ -w $dst ]] || echo $auth) cp -r "$i"/. "$dst"/
+                            done
+                        }
+
+                        atlas .await 0
+                    }
+                }
+
                 atlas .echo :1 "system regenerated, make sure there weren't any errors"
             }
 
@@ -519,4 +542,3 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
-
