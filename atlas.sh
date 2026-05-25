@@ -106,11 +106,11 @@ atlas() {
             atlas .echo q1 "remove orphans?"
 
             [[ ${REPLY,} = y ]] && {
+                atlas .await 1
                 $auth pacman -Rns ${orphans[@]}
+                atlas .await 0
                 echo
             }
-
-            atlas .await 0
         :;} || atlas .echo i1 "no orphans to remove"
 
         mapfile -t cache < <(pacman-conf CacheDir)
@@ -126,8 +126,6 @@ atlas() {
                     atlas .echo a0 "cleared: $(numfmt --to=iec "$csized")"
                 :;} || atlas .echo i1 "nothing to clear"
             }
-
-            atlas .await 0
         }
 
     }
@@ -174,6 +172,8 @@ atlas() {
             atlas .echo q0 "set up aur and flathub if you need, proceed?"
 
             [[ ${REPLY,} = y ]] && {
+                atlas .await 1
+
                 [[ -s $save/root ]] && $(type -P yay || type -P paru || echo "$auth pacman") -S --needed $(< "$save/root") && {
                     $auth pacman -D --asdeps $(pacman -Qqe)
                     $auth pacman -D --asexplicit $(< "$save/root")
@@ -188,6 +188,8 @@ atlas() {
                     flatpak remove --unused
                     echo
                 }
+
+                atlas .await 0
 
                 [[ -d $supersede ]] && {
                     atlas .echo q0 "overwrite files (${#supersede[@]})?"
@@ -204,14 +206,10 @@ atlas() {
                             $([[ -w $target ]] || echo $auth) cp -a --remove-destination "$i"/. "$target"/
                         done
                     }
-
-                    atlas .await 0
                 }
 
-                atlas .echo a0 "system regenerated, make sure there weren't any errors"
+                atlas .echo a0 "generation complete, make sure there weren't any errors"
             }
-
-            atlas .await 0
         :;} || atlas .echo i0 "couldn't find your save directory"
 
     }
@@ -243,12 +241,32 @@ atlas() {
 
     [[ $1 = .s ]] && {
 
+        local supersede=( "$save/overwrite"/*/ ) target i
+
         mkdir -p "$save"
 
         [[ -w $save ]] && {
             printf "%s$n" ${root[@]} > "$save/root"
             printf "%s$n" ${apps[@]} > "$save/apps"
             printf "%s$n" ${orphans[@]} > "$save/orphans"
+
+            [[ -d $supersede ]] && {
+                atlas .echo q0 "save overrides (${#supersede[@]})?"
+
+                [[ ${REPLY,} = y ]] && {
+                    for i in "${supersede[@]%/}"
+                    do
+                        target=${i##*/}
+                        target=${target//:/\/}
+                        target=${target/#@/$HOME}
+
+                        atlas .echo i1 "saving $target…"
+                        find "$i" -type f | while read f
+                        do cp -a --remove-destination "$target/${f#$i/}" "$f"
+                        done
+                    done
+                }
+            }
 
             atlas .echo i1 "saved"
         :;} || atlas .echo i0 "…? use a proper save path"
@@ -261,6 +279,8 @@ atlas() {
             atlas .echo q1 "scan for updates?"
 
             [[ ${REPLY,} = y ]] && {
+                atlas .await 1
+
                 $(type -P yay || type -P paru || echo "$auth pacman") -Syu
                 echo
 
@@ -269,11 +289,11 @@ atlas() {
                     echo
                 }
 
+                atlas .await 0
+
                 local version1=$(curl -fsS https://raw.githubusercontent.com/60-6/atlas/refs/heads/0/version)
                 [[ $version1 && $version0 != $version1 ]] && atlas .echo a0 "a new version of atlas is available if you care, github.com/60-6/atlas"
             }
-
-            atlas .await 0
         }
 
     }
@@ -281,10 +301,7 @@ atlas() {
     [[ $1 = .x ]] && {
 
         atlas .echo q0 "are you sure?"
-
         [[ ${REPLY,} = y ]] && atlas .suicide || atlas .echo i1 "…i'm flattered"
-
-        atlas .await 0
 
     }
 
@@ -341,21 +358,22 @@ atlas() {
 
         [[ $cmds = q0 ]] && {
             echo -n "$red⚠︎ $say {y/${bold}n$reset$red}$reset "
-            atlas .await 1
             atlas .emit w
+            atlas .await 1
             read -s -n 1
+            atlas .await 0
             echo -n "$r$clear"
         }
 
         [[ $cmds = q1 ]] && {
-            echo -n "✧ $say {y/${bold}n$reset} "
-            atlas .await 1
-            REPLY=y
             [[ $_1 =~ I ]] && {
+                echo -n "✧ $say {y/${bold}n$reset} "
                 atlas .emit q
+                atlas .await 1
                 read -s -n 1
-            }
-            echo -n "$r$clear"
+                atlas .await 0
+                echo -n "$r$clear"
+            :;} || REPLY=y
         }
 
     }
