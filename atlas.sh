@@ -201,7 +201,7 @@ atlas() {
 
                             atlas .echo i1 "writing $target…"
                             $([[ -w $(dirname "$target") ]] || echo $auth) mkdir -p "$target"
-                            $([[ -w $target ]] || echo $auth) cp -r "$i"/. "$target"/
+                            $([[ -w $target ]] || echo $auth) cp -a --remove-destination "$i"/. "$target"/
                         done
                     }
 
