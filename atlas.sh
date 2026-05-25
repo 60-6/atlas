@@ -165,10 +165,10 @@ atlas() {
 
     [[ $1 = .g ]] && {
 
-        local supersede=( "$save/overwrite"/*/ ) target i
+        local overwrites=( "$save/supersede"/*/ ) target i
 
         [[ -r $save ]] && {
-            atlas .echo i0 "i hope you understand that this is risky"
+            atlas .echo i1 "i hope you understand that this is risky…"
             atlas .echo q0 "set up aur and flathub if you need, proceed?"
 
             [[ ${REPLY,} = y ]] && {
@@ -191,19 +191,19 @@ atlas() {
 
                 atlas .await 0
 
-                [[ -d $supersede ]] && {
-                    atlas .echo q0 "overwrite files (${#supersede[@]})?"
+                [[ -d $overwrites ]] && {
+                    atlas .echo q0 "overwrite ${#overwrites[@]} targets?"
 
                     [[ ${REPLY,} = y ]] && {
-                        for i in "${supersede[@]%/}"
+                        for i in "${overwrites[@]%/}"
                         do
                             target=${i##*/}
                             target=${target//:/\/}
                             target=${target/#@/$HOME}
 
-                            atlas .echo i1 "writing $target…"
-                            $([[ -w $(dirname "$target") ]] || echo $auth) mkdir -p "$target"
-                            $([[ -w $target ]] || echo $auth) cp -a --remove-destination "$i"/. "$target"/
+                            atlas .echo i1 "writing to $target…"
+                            $auth mkdir -p "$target"
+                            $auth cp -a --remove-destination "$i"/. "$target"/
                         done
                     }
                 }
@@ -241,32 +241,25 @@ atlas() {
 
     [[ $1 = .s ]] && {
 
-        local supersede=( "$save/overwrite"/*/ ) target i
+        local overwrites=( "$save/supersede"/*/ ) target i
 
-        mkdir -p "$save"
+        mkdir -p "$save/supersede"
 
         [[ -w $save ]] && {
             printf "%s$n" ${root[@]} > "$save/root"
             printf "%s$n" ${apps[@]} > "$save/apps"
             printf "%s$n" ${orphans[@]} > "$save/orphans"
 
-            [[ -d $supersede ]] && {
-                atlas .echo q0 "save overrides (${#supersede[@]})?"
+            for i in "${overwrites[@]%/}"
+            do
+                target=${i##*/}
+                target=${target//:/\/}
+                target=${target/#@/$HOME}
 
-                [[ ${REPLY,} = y ]] && {
-                    for i in "${supersede[@]%/}"
-                    do
-                        target=${i##*/}
-                        target=${target//:/\/}
-                        target=${target/#@/$HOME}
-
-                        atlas .echo i1 "saving $target…"
-                        find "$i" -type f | while read f
-                        do cp -a --remove-destination "$target/${f#$i/}" "$f"
-                        done
-                    done
-                }
-            }
+                find "$i" -type f | while IFS= read -r ovrfile
+                do cp -a --remove-destination "$target/${ovrfile#$i/}" "$ovrfile"
+                done
+            done 2>/dev/null
 
             atlas .echo i1 "saved"
         :;} || atlas .echo i0 "…? use a proper save path"
