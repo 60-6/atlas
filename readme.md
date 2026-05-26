@@ -23,9 +23,9 @@ you can specify different save directories by using a generation marker as a sec
 
 ex: 'atlas s 6' saves to '<save_directory>/atlas/6'
 
-inside atlas's save directory, you'll find a 'supersede' directory. you can use it to create overwrites
+inside atlas's save directory, you'll find a 'supersede' directory, where you can create 'overwrites'
 
-name folders in supersede after their destination path, using '@' instead of '~' and ':' instead of '/'
+name each folder in supersede after its destination path, use '@' instead of '~' and ':' instead of '/'
 
 anything under the overwrite folders will be regenerated when running 'atlas g'
 
