@@ -29,4 +29,4 @@ name each folder in supersede after its destination path, use '@' instead of '~'
 
 anything under the overwrite folders will be regenerated when running 'atlas g'
 
-ex '<save_directory>/atlas/supersede/@:.config/kitty/kitty.conf' writes to '~/.config/kitty/kitty.conf'
+ex '<save_directory>/atlas/supersede/@:.config/kitty/kitty.conf' overwrites '~/.config/kitty/kitty.conf'
