@@ -19,10 +19,14 @@ atlas has a configuration module you can edit
 
 'atlas g' regenerates your system from atlas's save directory
 
-you can create a folder named 'overwrite' in atlas's save directory
+you can specify different save directories by using a generation marker as a second argument
 
-inside 'overwrite', name the targets after their destination path, using '@' instead of '~' and ':' instead of '/'
+ex: 'atlas s 6' saves to '<save_directory>/atlas/6'
 
-anything under the specified path will be optionally overwritten when running 'atlas g'
+inside atlas's save directory, you'll find a 'supersede' directory. you can use it to create overwrites
 
-you can pass a second argument as a generation marker, for example 'atlas s 6'
+name folders in supersede after their destination path, using '@' instead of '~' and ':' instead of '/'
+
+anything under the overwrite folders will be regenerated when running 'atlas g'
+
+ex '<save_directory>/atlas/supersede/@:.config/kitty/kitty.conf' writes to '~/.config/kitty/kitty.conf'
