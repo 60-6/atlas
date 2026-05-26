@@ -23,7 +23,7 @@ you can specify different save directories by using a generation marker as a sec
 
 ex: 'atlas s 6' saves to '<save_directory>/atlas/6'
 
-inside atlas's save directory, you'll find a 'supersede' directory, where you can create 'overwrites'
+inside atlas's save directory, you'll find a 'supersede' directory where you can create 'overwrites'
 
 name each folder in supersede after its destination path, use '@' instead of '~' and ':' instead of '/'
 
