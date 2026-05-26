@@ -159,17 +159,17 @@ atlas() {
             done 2>/dev/null
 
             [[ ${delta[@]} =~ [^\ ] ]] || atlas .echo i1 "difference: nil"
-        :;} || [[ $_1 =~ s ]] || atlas .echo i0 "you forgot to save…"
+        :;} || atlas .echo i0 "can't diff against nothing"
 
     }
 
     [[ $1 = .g ]] && {
 
-        local overwrites=( "$save/supersede"/*/ ) target i
+        local overwrites=( "$save/supersede"/*/ ) dst i
 
         [[ -r $save ]] && {
-            atlas .echo i1 "i hope you understand that this is risky…"
-            atlas .echo q0 "set up aur and flathub if you need, proceed?"
+            atlas .echo i1 "i hope you understand that this is risky..."
+            atlas .echo q0 "set up aur and flatpak if you need, proceed?"
 
             [[ ${REPLY,} = y ]] && {
                 atlas .await 1
@@ -197,20 +197,19 @@ atlas() {
                     [[ ${REPLY,} = y ]] && {
                         for i in "${overwrites[@]%/}"
                         do
-                            target=${i##*/}
-                            target=${target//:/\/}
-                            target=${target/#@/$HOME}
+                            dst=${i##*/}
+                            dst=${dst//:/\/}
+                            dst=${dst/#@/$HOME}
 
-                            atlas .echo i1 "writing to $target…"
-                            $auth mkdir -p "$target"
-                            $auth cp -a --remove-destination "$i"/. "$target"/
+                            $auth mkdir -p "$dst"
+                            $auth cp -a --remove-destination "$i"/. "$dst"/
                         done
                     }
                 }
 
                 atlas .echo a0 "generation complete, make sure there weren't any errors"
             }
-        :;} || atlas .echo i0 "couldn't find your save directory"
+        :;} || atlas .echo i0 "you forgot to save..."
 
     }
 
@@ -241,7 +240,7 @@ atlas() {
 
     [[ $1 = .s ]] && {
 
-        local overwrites=( "$save/supersede"/*/ ) target i
+        local overwrites=( "$save/supersede"/*/ ) dst i
 
         mkdir -p "$save/supersede"
 
@@ -250,19 +249,23 @@ atlas() {
             printf "%s$n" ${apps[@]} > "$save/apps"
             printf "%s$n" ${orphans[@]} > "$save/orphans"
 
-            for i in "${overwrites[@]%/}"
-            do
-                target=${i##*/}
-                target=${target//:/\/}
-                target=${target/#@/$HOME}
+            [[ -d $overwrites ]] && {
+                for i in "${overwrites[@]%/}"
+                do
+                    dst=${i##*/}
+                    dst=${dst//:/\/}
+                    dst=${dst/#@/$HOME}
 
-                find "$i" -type f | while IFS= read -r ovrfile
-                do cp -a --remove-destination "$target/${ovrfile#$i/}" "$ovrfile"
+                    find "$i" -type f | while IFS= read -r ovrfile
+                    do
+                        dstfile=$dst/${ovrfile#$i/}
+                        $([[ -r $dstfile ]] || echo "$auth") cp -a --remove-destination "$dstfile" "$ovrfile"
+                    done
                 done
-            done 2>/dev/null
+            }
 
             atlas .echo i1 "saved"
-        :;} || atlas .echo i0 "…? use a proper save path"
+        :;} || atlas .echo i0 "...? use a proper save path"
 
     }
 
@@ -294,7 +297,7 @@ atlas() {
     [[ $1 = .x ]] && {
 
         atlas .echo q0 "are you sure?"
-        [[ ${REPLY,} = y ]] && atlas .suicide || atlas .echo i1 "…i'm flattered"
+        [[ ${REPLY,} = y ]] && atlas .suicide || atlas .echo i1 "...i'm flattered"
 
     }
 
@@ -335,7 +338,7 @@ atlas() {
         }
 
         [[ $cmds = a1 ]] && {
-            echo -n "$origin$dim$say…$reset$clear"
+            echo -n "$origin$dim$say$reset$clear"
             [[ $_1 =~ Q ]] || read -t 0.3
         }
 
@@ -388,7 +391,7 @@ atlas() {
         local cmds=$2 pkg opt
 
         [[ $cmds =~ l && ! $_1 =~ Q ]] && {
-            atlas .echo a1 "extracting lineage"
+            atlas .echo a1 "extracting lineage..."
             lineage=()
 
             while read pkg opt
@@ -491,22 +494,22 @@ atlas() {
 
         {
             [[ $cmds =~ a ]] && {
-                atlas .echo a1 "scanning apps"
+                atlas .echo a1 "scanning apps..."
                 mapfile -t appnames < <(flatpak list --app --columns=name)
             }
 
             [[ $cmds =~ i ]] && {
-                atlas .echo a1 "scanning app ids"
+                atlas .echo a1 "scanning app ids..."
                 apps=( $(flatpak list --app --columns=app) )
             }
 
             [[ $cmds =~ o ]] && {
-                atlas .echo a1 "scanning orphans"
+                atlas .echo a1 "scanning orphans..."
                 orphans=( $(pacman -Qqtd) )
             }
 
             [[ $cmds =~ r ]] && {
-                atlas .echo a1 "scanning root"
+                atlas .echo a1 "scanning root..."
                 root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
             }
 
@@ -543,7 +546,7 @@ atlas() {
         grep -q ' //  ▲  \\\\ ' "$BASH_SOURCE" && sed -i '\L << A T \L A S >> L, \| //  ▲  \\\\ | d' "$BASH_SOURCE"
         grep -q "atlas()" "$BASH_SOURCE" && {
             atlas .echo i0 "delete the source code yourself"
-        :;} || atlas .echo i1 "…bye"
+        :;} || atlas .echo i1 "...bye"
 
         atlas .signal 0
         unset -f atlas
@@ -556,3 +559,4 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
+
