@@ -192,7 +192,7 @@ atlas() {
                 atlas .await 0
 
                 [[ -d $overwrites ]] && {
-                    atlas .echo q0 "overwrite ${#overwrites[@]} targets?"
+                    atlas .echo q0 "overwrite ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "destinations" || echo "destination")?"
 
                     [[ ${REPLY,} = y ]] && {
                         for i in "${overwrites[@]%/}"
@@ -559,4 +559,3 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
-
