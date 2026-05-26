@@ -15,9 +15,9 @@ atlas() {
 
 #  ├── execution ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
-    (( executing - 66 )) && {
+    [[ $executing = samsara ]] || {
 
-        local _1=$1 executing=66 auth=$(type -P sudo || type -P doas) save=$save_directory/atlas/$2 version0=samsara
+        local _1=$1 executing=samsara auth=$(type -P sudo || type -P doas) save=$save_directory/atlas/$2
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[3G' n=$'\n' r=$'\r'
         local appnames apps log orphans root scanned
         local -A async lineage modified null
@@ -287,8 +287,8 @@ atlas() {
 
                 atlas .await 0
 
-                local version1=$(curl -fsS https://raw.githubusercontent.com/60-6/atlas/refs/heads/0/version)
-                [[ $version1 && $version0 != $version1 ]] && atlas .echo a0 "a new version of atlas is available if you care, github.com/60-6/atlas"
+                local version=$(curl -fsS https://raw.githubusercontent.com/60-6/atlas/refs/heads/0/version)
+                [[ $version && ! $executing = $version ]] && atlas .echo a0 "a new version of atlas is available if you care, github.com/60-6/atlas"
             }
         }
 
@@ -559,3 +559,4 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
+
