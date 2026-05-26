@@ -25,8 +25,8 @@ ex: 'atlas s 6' saves to '<save_directory>/atlas/6'
 
 inside atlas's save directory, you'll find a 'supersede' directory where you can create 'overwrites'
 
-name each folder in supersede after its destination path, use '@' instead of '~' and ':' instead of '/'
+name each overwrite directory in supersede after its destination directory, use '@' instead of '~' and ':' instead of '/'
 
-anything under the overwrite folders will be regenerated when running 'atlas g'
+anything under the overwrite directories will be regenerated when running 'atlas g'
 
 ex: '<save_directory>/atlas/supersede/@:.config/kitty/kitty.conf' overwrites '~/.config/kitty/kitty.conf'
