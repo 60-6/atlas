@@ -13,7 +13,7 @@ atlas() {
 
     }
 
-#  ├── execution ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+#  ├── cortex ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
     [[ $executing = samsara ]] || {
 
@@ -28,8 +28,6 @@ atlas() {
         echo
 
     }
-
-#  ├── cortex ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
     [[ $1 = :resolve ]] && {
 
@@ -72,11 +70,10 @@ atlas() {
 
     [[ $1 = :dispatch ]] && {
 
-        local i
-
         atlas .signal 1
 
         atlas .scan $_1
+        local i
         for i in $(fold -w1 <<< $_1)
         do
             atlas .scan $i
@@ -100,8 +97,6 @@ atlas() {
 
     [[ $1 = .c ]] && {
 
-        local cache
-
         [[ $orphans ]] && {
             atlas .echo q1 "remove orphans?"
 
@@ -113,6 +108,7 @@ atlas() {
             }
         :;} || atlas .echo i1 "no orphans to remove"
 
+        local cache
         mapfile -t cache < <(pacman-conf CacheDir)
         local csize=$(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)
 
@@ -132,10 +128,10 @@ atlas() {
 
     [[ $1 = .d ]] && {
 
-        local i
-        local -A delta
-
         [[ -r $save ]] && {
+            local i
+            local -A delta
+
             for i in root apps orphans
             do
                 local -n xarr=$i
@@ -165,8 +161,6 @@ atlas() {
 
     [[ $1 = .g ]] && {
 
-        local overwrites=( "$save/supersede"/*/ ) dst i
-
         [[ -r $save ]] && {
             atlas .echo i1 "i hope you understand that this is risky..."
             atlas .echo q0 "set up aur and flatpak if you need, proceed?"
@@ -191,6 +185,8 @@ atlas() {
 
                 atlas .await 0
 
+                local overwrites=( "$save/supersede"/*/ ) dst i
+
                 [[ -d $overwrites ]] && {
                     atlas .echo q0 "overwrite ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "destinations" || echo "destination")?"
 
@@ -200,7 +196,6 @@ atlas() {
                             dst=${i##*/}
                             dst=${dst//:/\/}
                             dst=${dst/#@/$HOME}
-
                             $auth mkdir -p "$dst"
                             $auth cp -a --remove-destination "$i"/. "$dst"/
                         done
@@ -240,8 +235,6 @@ atlas() {
 
     [[ $1 = .s ]] && {
 
-        local overwrites=( "$save/supersede"/*/ ) dst i
-
         mkdir -p "$save/supersede"
 
         [[ -w $save ]] && {
@@ -249,13 +242,14 @@ atlas() {
             printf "%s$n" ${apps[@]} > "$save/apps"
             printf "%s$n" ${orphans[@]} > "$save/orphans"
 
+            local overwrites=( "$save/supersede"/*/ ) dst i
+
             [[ -d $overwrites ]] && {
                 for i in "${overwrites[@]%/}"
                 do
                     dst=${i##*/}
                     dst=${dst//:/\/}
                     dst=${dst/#@/$HOME}
-
                     find "$i" -type f | while IFS= read -r ovrfile
                     do
                         dstfile=$dst/${ovrfile#$i/}
@@ -559,4 +553,3 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
-
