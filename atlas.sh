@@ -1,8 +1,8 @@
-# ┄┄───═════════════════════════════════════════════════════════════════ << A T L A S >> ═════════════════════════════════════════════════════════════════───┄┄ #
+# ┄┄───═════════════════════════════════════════════════════════════════════════════════ << A T L A S >> ═════════════════════════════════════════════════════════════════════════════════───┄┄ #
 
 atlas() {
 
-#  ╭── configuration ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+#  ╭── configuration ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 
     {
 
@@ -13,11 +13,11 @@ atlas() {
 
     }
 
-#  ├── cortex ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+#  ├── cortex ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
-    [[ $executing = samsara ]] || {
+    [[ $code = samsara ]] || {
 
-        local _1=$1 executing=samsara auth=$(type -P sudo || type -P doas) save=$save_directory/atlas/$2
+        local _1=$1 code=samsara auth=$(type -P sudo || type -P doas) save=$save_directory/atlas/$2
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[3G' n=$'\n' r=$'\r'
         local appnames apps log orphans root scanned
         local -A async lineage modified null
@@ -73,7 +73,9 @@ atlas() {
         atlas .signal 1
 
         atlas .scan $_1
+
         local i
+
         for i in $(fold -w1 <<< $_1)
         do
             atlas .scan $i
@@ -84,7 +86,7 @@ atlas() {
 
     }
 
-#  ├── operations ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+#  ├── operations ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
     [[ $1 = .a ]] && {
 
@@ -116,8 +118,12 @@ atlas() {
             atlas .echo q1 "clear cache ($(numfmt --to=iec "$csize"))?"
 
             [[ ${REPLY,} = y ]] && {
+                atlas .await 1
                 yes | $auth pacman -Sc &>/dev/null
+                atlas .await 0
+
                 local csized=$(( csize - $(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1) ))
+
                 (( csized )) && {
                     atlas .echo a0 "cleared: $(numfmt --to=iec "$csized")"
                 :;} || atlas .echo i1 "nothing to clear"
@@ -151,10 +157,8 @@ atlas() {
                     }
 
                     echo
-                }
+                :;} || [[ ! -r $save/$i ]] || atlas .echo i1 "$i difference: nil"
             done 2>/dev/null
-
-            [[ ${delta[@]} =~ [^\ ] ]] || atlas .echo i1 "difference: nil"
         :;} || atlas .echo i0 "can't diff against nothing"
 
     }
@@ -191,6 +195,8 @@ atlas() {
                     atlas .echo q0 "overwrite ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "destinations" || echo "destination")?"
 
                     [[ ${REPLY,} = y ]] && {
+                        atlas .await 1
+
                         for i in "${overwrites[@]%/}"
                         do
                             dst=${i##*/}
@@ -199,10 +205,12 @@ atlas() {
                             $auth mkdir -p "$dst"
                             $auth cp -a --remove-destination "$i"/. "$dst"/
                         done
+
+                        atlas .await 0
                     }
                 }
 
-                atlas .echo a0 "generation complete, make sure there weren't any errors"
+                atlas .echo a0 "all done, make sure there weren't any errors"
             }
         :;} || atlas .echo i0 "you forgot to save..."
 
@@ -245,17 +253,21 @@ atlas() {
             local overwrites=( "$save/supersede"/*/ ) dst i
 
             [[ -d $overwrites ]] && {
+                atlas .await 1
+
                 for i in "${overwrites[@]%/}"
                 do
                     dst=${i##*/}
                     dst=${dst//:/\/}
                     dst=${dst/#@/$HOME}
-                    find "$i" -type f | while IFS= read -r ovrfile
+                    find "$i" -not -type d | while IFS= read -r oentry
                     do
-                        dstfile=$dst/${ovrfile#$i/}
-                        $([[ -r $dstfile ]] || echo "$auth") cp -a --remove-destination "$dstfile" "$ovrfile"
+                        dentry=$dst/${oentry#$i/}
+                        [[ $dentry -nt $oentry ]] || $([[ -r $dentry ]] || echo "$auth") cp -a --remove-destination "$dentry" "$oentry" 2>/dev/null || atlas .echo i1 "couldn't save $dentry"
                     done
                 done
+
+                atlas .await 0
             }
 
             atlas .echo i1 "saved"
@@ -282,7 +294,7 @@ atlas() {
                 atlas .await 0
 
                 local version=$(curl -fsS https://raw.githubusercontent.com/60-6/atlas/refs/heads/0/version)
-                [[ $version && ! $executing = $version ]] && atlas .echo a0 "a new version of atlas is available if you care, github.com/60-6/atlas"
+                [[ $version && ! $code = $version ]] && atlas .echo a0 "a new version of atlas is available if you care, github.com/60-6/atlas"
             }
         }
 
@@ -295,7 +307,7 @@ atlas() {
 
     }
 
-#  ├── core ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+#  ├── core ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
     [[ $1 = .await ]] && {
 
@@ -450,7 +462,6 @@ atlas() {
                 }
 
                 echo "$attr$depth$pfx$i$reset"
-
                 local children=( ${arr[$i]} )
                 atlas .render children $arrn "$attr" "$depth$indent$dim"
             }
@@ -536,8 +547,8 @@ atlas() {
     [[ $1 = .suicide ]] && {
 
         rm -rf "$save_directory/atlas"
-
         grep -q ' //  ▲  \\\\ ' "$BASH_SOURCE" && sed -i '\L << A T \L A S >> L, \| //  ▲  \\\\ | d' "$BASH_SOURCE"
+
         grep -q "atlas()" "$BASH_SOURCE" && {
             atlas .echo i0 "delete the source code yourself"
         :;} || atlas .echo i1 "...bye"
@@ -548,8 +559,9 @@ atlas() {
 
     }
 
-#  ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+#  ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 }
 
-# ┄┄───════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════───┄┄ #
+# ┄┄───════════════════════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════════════════════───┄┄ #
+
