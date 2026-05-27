@@ -262,7 +262,7 @@ atlas() {
                     find "$i" -not -type d | while IFS= read -r oentry
                     do
                         dentry=$dst/${oentry#$i/}
-                        [[ $dentry -nt $oentry ]] || $([[ -r $dentry ]] || echo "$auth") cp -a --remove-destination "$dentry" "$oentry" 2>/dev/null || atlas .echo i1 "couldn't save $dentry"
+                        $([[ -r $dentry ]] || echo "$auth") cp -a --remove-destination "$dentry" "$oentry" 2>/dev/null || atlas .echo i1 "couldn't save $dentry"
                     done
                 done
 
