@@ -71,7 +71,6 @@ atlas() {
     [[ $1 = :dispatch ]] && {
 
         atlas .signal 1
-
         atlas .scan $_1
 
         local i
