@@ -9,11 +9,25 @@ you can use it by pasting it into '~/.bashrc'.
 see 'atlas ?' for syntax.
 
 
-### extra
+
+## extra
+
+
+### configuration
 
 atlas has a configuration module you can edit.
 
-'atlas s' saves your system packages and your overwrites, more clarity on that below.
+'save_directory' is volatile by default, change it somewhere else if you want your save to persist.
+
+'default_commands' are the commands that run when calling atlas without any arguments.
+
+'upgrade_interval' is how often atlas asks you about upgrading your system, in days.
+
+'cache_limit' is the package cache limit before atlas asks you to clear it, in gigabytes.
+
+### declaration
+
+'atlas s' saves your system packages and your 'overwrites'.
 
 'atlas d' shows you the difference between your current system and the saved one.
 
@@ -30,7 +44,5 @@ name each overwrite directory in supersede after its destination directory, use 
 anything under the overwrite directories will be regenerated when running 'atlas g'.
 
 ex: '<save_directory>/atlas/supersede/@:.config/kitty/kitty.conf' overwrites '~/.config/kitty/kitty.conf'.
-
-you can put anything in supersede, even your entire home directory if you're a psychopath.
 
 if you've got questions or anything, discussions are there.
