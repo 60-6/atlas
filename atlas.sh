@@ -477,6 +477,8 @@ atlas() {
 
     [[ $1 = .scan ]] && {
 
+        local cmds=$2
+
         modified[l1]=$(stat -c %Y "$log")
         modified[f1]=$(stat -c %Y /var/lib/flatpak 2>/dev/null)
 
@@ -489,8 +491,6 @@ atlas() {
             scanned=${scanned//[ai]}
             modified[f0]=${modified[f1]}
         }
-
-        local cmds=$2
 
         cmds=${cmds/c/o}
         cmds=${cmds/r/lor}
