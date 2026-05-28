@@ -201,6 +201,7 @@ atlas() {
                             dst=${i##*/}
                             dst=${dst//:/\/}
                             dst=${dst/#@/$HOME}
+                            
                             $auth mkdir -p "$dst"
                             
                             find "$i" -mindepth 1 -maxdepth 1 | while IFS= read -r oentry
