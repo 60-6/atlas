@@ -17,39 +17,32 @@ atlas() {
 
     [[ $code = samsara ]] || {
 
-        local _1=$1 code=samsara auth=$(type -P sudo || type -P doas) save=$save_directory/atlas/$2
+        local cmds=$1 code=samsara auth=$(type -P sudo || type -P doas) save=$save_directory/atlas/$2
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[3G' n=$'\n' r=$'\r'
-        local appnames apps log orphans root scanned
+        local root appnames apps orphans scanned
         local -A async lineage modified null
 
         echo
-        atlas :resolve
-        atlas :dispatch
-        echo
-
-    }
-
-    [[ $1 = :resolve ]] && {
 
         [[ $(type -P pacman) ]] || {
             atlas .echo i0 "you're not even using arch silly"
             atlas .suicide
         }
 
-        [[ ${_1//[IQ]} ]] || _1+=$default_commands
+        [[ ${cmds//[IQ]} ]] || cmds+=$default_commands
 
-        [[ $_1 = \? ]] && {
+        [[ $cmds = \? ]] && {
             atlas .echo a0 "atlas syntax"
             echo " ╭── operations ─────────────╮"
+            echo " │ r  ·  view root           │"
             echo " │ a  ·  view apps           │"
-            echo " │ c  ·  cleanup             │"
-            echo " │ d  ·  view difference     │"
-            echo " │ g  ·  generate system     │"
             echo " │ i  ·  view app ids        │"
             echo " │ o  ·  view orphans        │"
-            echo " │ r  ·  view root           │"
-            echo " │ s  ·  save system         │"
             echo " │ u  ·  upgrade             │"
+            echo " │ c  ·  cleanup             │"
+            echo " │ s  ·  save system         │"
+            echo " │ d  ·  view difference     │"
+            echo " │ g  ·  generate system     │"
             echo " │ x  ·  erase atlas         │"
             echo " ╰───────────────────────────╯$n"
             echo " ╭── modifiers ──────────────╮"
@@ -59,35 +52,39 @@ atlas() {
             kill -2 $$
         }
 
-        [[ ${_1//[acdgiorsuxIQ]} ]] && {
+        [[ ${cmds//[raioucsdgxIQ]} ]] && {
             atlas .echo i0 "not sure what you mean, see 'atlas ?' for syntax"
             kill -2 $$
         }
 
-        log=$(pacman-conf LogFile)
-
-    }
-
-    [[ $1 = :dispatch ]] && {
-
         atlas .signal 1
-        atlas .scan $_1
+
+        atlas .scan $cmds
 
         local i
 
-        for i in $(fold -w1 <<< $_1)
+        for i in $(fold -w1 <<< $cmds)
         do
             atlas .scan $i
-            atlas .$i
+            atlas :$i
         done
 
         atlas .signal 0
+
+        echo
 
     }
 
 #  ├── operations ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
-    [[ $1 = .a ]] && {
+    [[ $1 = :r ]] && {
+
+        echo "${bold}root (${#root[@]})$reset"
+        atlas .render root lineage
+
+    }
+
+    [[ $1 = :a ]] && {
 
         [[ $appnames ]] && {
             echo "${bold}apps (${#appnames[@]})$reset"
@@ -96,7 +93,50 @@ atlas() {
 
     }
 
-    [[ $1 = .c ]] && {
+    [[ $1 = :i ]] && {
+
+        [[ $apps ]] && {
+            echo "${bold}app ids (${#apps[@]})$reset"
+            atlas .render apps null
+        :;} || atlas .echo i1 "app ids: nil"
+
+    }
+
+    [[ $1 = :o ]] && {
+
+        [[ $orphans ]] && {
+            echo "$red${bold}orphans (${#orphans[@]})$reset"
+            atlas .render orphans null "$red"
+        :;} || atlas .echo i1 "orphans: nil"
+
+    }
+
+    [[ $1 = :u ]] && {
+
+        [[ $cmds =~ I && $(tac "$(pacman-conf LogFile)" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
+            atlas .echo q1 "scan for updates?"
+
+            [[ ${REPLY,} = y ]] && {
+                atlas .await 1
+
+                $(type -P yay || type -P paru || echo "$auth pacman") -Syu
+                echo
+
+                [[ $(type -P flatpak) ]] && {
+                    flatpak update && flatpak remove --unused
+                    echo
+                }
+
+                atlas .await 0
+
+                local version=$(curl -fsS https://raw.githubusercontent.com/60-6/atlas/refs/heads/0/version)
+                [[ $version && ! $code = $version ]] && atlas .echo a0 "a new version of atlas is available if you care, github.com/60-6/atlas"
+            }
+        }
+
+    }
+
+    [[ $1 = :c ]] && {
 
         [[ $orphans ]] && {
             atlas .echo q1 "remove orphans?"
@@ -113,7 +153,7 @@ atlas() {
         mapfile -t cache < <(pacman-conf CacheDir)
         local csize=$(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)
 
-        [[ $_1 =~ I ]] && (( cache_limit<<30 > csize )) || {
+        [[ $cmds =~ I ]] && (( cache_limit<<30 > csize )) || {
             atlas .echo q1 "clear cache ($(numfmt --to=iec "$csize"))?"
 
             [[ ${REPLY,} = y ]] && {
@@ -131,7 +171,42 @@ atlas() {
 
     }
 
-    [[ $1 = .d ]] && {
+    [[ $1 = :s ]] && {
+
+        mkdir -p "$save/supersede"
+
+        [[ -w $save ]] && {
+            printf "%s$n" ${root[@]} > "$save/root"
+            printf "%s$n" ${apps[@]} > "$save/apps"
+            printf "%s$n" ${orphans[@]} > "$save/orphans"
+
+            local overwrites=( "$save/supersede"/*/ ) dst i
+
+            [[ -d $overwrites ]] && {
+                atlas .await 1
+
+                for i in "${overwrites[@]%/}"
+                do
+                    dst=${i##*/}
+                    dst=${dst//:/\/}
+                    dst=${dst/#@/$HOME}
+
+                    find "$i" -not -type d | while IFS= read -r oentry
+                    do
+                        dentry=$dst/${oentry#$i/}
+                        $([[ -r $dentry ]] || echo "$auth") cp -a --remove-destination "$dentry" "$oentry" 2>/dev/null || atlas .echo i1 "couldn't save $dentry"
+                    done
+                done
+
+                atlas .await 0
+            }
+
+            atlas .echo i1 "saved"
+        :;} || atlas .echo i0 "...? use a proper save path"
+
+    }
+
+    [[ $1 = :d ]] && {
 
         [[ -r $save ]] && {
             local i
@@ -162,7 +237,7 @@ atlas() {
 
     }
 
-    [[ $1 = .g ]] && {
+    [[ $1 = :g ]] && {
 
         [[ -r $save ]] && {
             atlas .echo i1 "i hope you understand that this is risky..."
@@ -201,9 +276,8 @@ atlas() {
                             dst=${i##*/}
                             dst=${dst//:/\/}
                             dst=${dst/#@/$HOME}
-                            
                             $auth mkdir -p "$dst"
-                            
+
                             find "$i" -mindepth 1 -maxdepth 1 | while IFS= read -r oentry
                             do $auth cp -a --remove-destination "$oentry" "$dst"
                             done
@@ -219,92 +293,7 @@ atlas() {
 
     }
 
-    [[ $1 = .i ]] && {
-
-        [[ $apps ]] && {
-            echo "${bold}app ids (${#apps[@]})$reset"
-            atlas .render apps null
-        :;} || atlas .echo i1 "app ids: nil"
-
-    }
-
-    [[ $1 = .o ]] && {
-
-        [[ $orphans ]] && {
-            echo "$red${bold}orphans (${#orphans[@]})$reset"
-            atlas .render orphans null "$red"
-        :;} || atlas .echo i1 "orphans: nil"
-
-    }
-
-    [[ $1 = .r ]] && {
-
-        echo "${bold}root (${#root[@]})$reset"
-        atlas .render root lineage
-
-    }
-
-    [[ $1 = .s ]] && {
-
-        mkdir -p "$save/supersede"
-
-        [[ -w $save ]] && {
-            printf "%s$n" ${root[@]} > "$save/root"
-            printf "%s$n" ${apps[@]} > "$save/apps"
-            printf "%s$n" ${orphans[@]} > "$save/orphans"
-
-            local overwrites=( "$save/supersede"/*/ ) dst i
-
-            [[ -d $overwrites ]] && {
-                atlas .await 1
-
-                for i in "${overwrites[@]%/}"
-                do
-                    dst=${i##*/}
-                    dst=${dst//:/\/}
-                    dst=${dst/#@/$HOME}
-                    
-                    find "$i" -not -type d | while IFS= read -r oentry
-                    do
-                        dentry=$dst/${oentry#$i/}
-                        $([[ -r $dentry ]] || echo "$auth") cp -a --remove-destination "$dentry" "$oentry" 2>/dev/null || atlas .echo i1 "couldn't save $dentry"
-                    done
-                done
-
-                atlas .await 0
-            }
-
-            atlas .echo i1 "saved"
-        :;} || atlas .echo i0 "...? use a proper save path"
-
-    }
-
-    [[ $1 = .u ]] && {
-
-        [[ $_1 =~ I && $(tac "$log" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
-            atlas .echo q1 "scan for updates?"
-
-            [[ ${REPLY,} = y ]] && {
-                atlas .await 1
-
-                $(type -P yay || type -P paru || echo "$auth pacman") -Syu
-                echo
-
-                [[ $(type -P flatpak) ]] && {
-                    flatpak update && flatpak remove --unused
-                    echo
-                }
-
-                atlas .await 0
-
-                local version=$(curl -fsS https://raw.githubusercontent.com/60-6/atlas/refs/heads/0/version)
-                [[ $version && ! $code = $version ]] && atlas .echo a0 "a new version of atlas is available if you care, github.com/60-6/atlas"
-            }
-        }
-
-    }
-
-    [[ $1 = .x ]] && {
+    [[ $1 = :x ]] && {
 
         atlas .echo q0 "are you sure?"
         [[ ${REPLY,} = y ]] && atlas .suicide || atlas .echo i1 "...i'm flattered"
@@ -340,29 +329,29 @@ atlas() {
 
     [[ $1 = .echo ]] && {
 
-        local cmds=$2 say=$3
+        local ops=$2 say=$3
 
-        [[ $cmds = a0 ]] && {
+        [[ $ops = a0 ]] && {
             echo "$bold「 $say 」$reset$n"
             atlas .emit a
         }
 
-        [[ $cmds = a1 ]] && {
+        [[ $ops = a1 ]] && {
             echo -n "$origin$dim$say$reset$clear"
-            [[ $_1 =~ Q ]] || read -t 0.3
+            [[ $cmds =~ Q ]] || read -t 0.3
         }
 
-        [[ $cmds = i0 ]] && {
+        [[ $ops = i0 ]] && {
             echo "$red⚠︎ $say$reset$n"
             atlas .emit e
         }
 
-        [[ $cmds = i1 && ! $_1 =~ I ]] && {
+        [[ $ops = i1 && ! $cmds =~ I ]] && {
             echo "$dim∴ $say$reset$n"
             atlas .emit i
         }
 
-        [[ $cmds = q0 ]] && {
+        [[ $ops = q0 ]] && {
             echo -n "$red⚠︎ $say {y/${bold}n$reset$red}$reset "
             atlas .emit w
             atlas .await 1
@@ -371,8 +360,8 @@ atlas() {
             echo -n "$r$clear"
         }
 
-        [[ $cmds = q1 ]] && {
-            [[ $_1 =~ I ]] && {
+        [[ $ops = q1 ]] && {
+            [[ $cmds =~ I ]] && {
                 echo -n "✧ $say {y/${bold}n$reset} "
                 atlas .emit q
                 atlas .await 1
@@ -386,11 +375,11 @@ atlas() {
 
     [[ $1 = .emit ]] && {
 
-        local cmds=$2
+        local ops=$2
         local -A ids=( [a]=window-attention [e]=dialog-error [i]=dialog-information [q]=window-question [w]=dialog-warning )
 
-        [[ $_1 =~ Q ]] || kill -0 ${async[emit]} 2>/dev/null || {
-            canberra-gtk-play -i ${ids[$cmds]} &async[emit]=$!
+        [[ $cmds =~ Q ]] || kill -0 ${async[emit]} 2>/dev/null || {
+            canberra-gtk-play -i ${ids[$ops]} &async[emit]=$!
             disown ${async[emit]}
         } &>/dev/null
 
@@ -398,9 +387,9 @@ atlas() {
 
     [[ $1 = .extract ]] && {
 
-        local cmds=$2 pkg opt
+        local ops=$2 pkg opt
 
-        [[ $cmds =~ l && ! $_1 =~ Q ]] && {
+        [[ $ops =~ l && ! $cmds =~ Q ]] && {
             atlas .echo a1 "extracting lineage..."
             lineage=()
 
@@ -458,7 +447,7 @@ atlas() {
         for i in "${xarr[@]}"
         do
             [[ ! $depth && ${arr[@]} =~ " $i " ]] || {
-                [[ $_1 =~ Q ]] || {
+                [[ $cmds =~ Q ]] || {
                     [[ $depth ]] || echo "$attr│"
                     (( x )) || local xx=$([[ $depth ]] && echo ${#xarr[@]} || grep -cvxFf <(printf "%s$n" ${arr[@]}) <(printf "%s$n" "${xarr[@]}"))
                     (( ++x == xx )) && local pfx="╰─ " indent="   " || local pfx="├─ " indent="│  "
@@ -477,9 +466,9 @@ atlas() {
 
     [[ $1 = .scan ]] && {
 
-        local cmds=$2
+        local ops=$2
 
-        modified[l1]=$(stat -c %Y "$log")
+        modified[l1]=$(stat -c %Y "$(pacman-conf LogFile)")
         modified[f1]=$(stat -c %Y /var/lib/flatpak 2>/dev/null)
 
         [[ ${modified[l0]} = ${modified[l1]} ]] || {
@@ -492,36 +481,36 @@ atlas() {
             modified[f0]=${modified[f1]}
         }
 
-        cmds=${cmds/c/o}
-        cmds=${cmds/r/lor}
-        cmds=${cmds/[ds]/ior}
-        cmds=${cmds//[$scanned]}
-        scanned+=$cmds
+        ops=${ops/c/o}
+        ops=${ops/r/lor}
+        ops=${ops/[ds]/ior}
+        ops=${ops//[$scanned]}
+        scanned+=$ops
 
         atlas .pulse 1
 
         {
-            [[ $cmds =~ a ]] && {
+            [[ $ops =~ a ]] && {
                 atlas .echo a1 "scanning apps..."
                 mapfile -t appnames < <(flatpak list --app --columns=name)
             }
 
-            [[ $cmds =~ i ]] && {
+            [[ $ops =~ i ]] && {
                 atlas .echo a1 "scanning app ids..."
                 apps=( $(flatpak list --app --columns=app) )
             }
 
-            [[ $cmds =~ o ]] && {
+            [[ $ops =~ o ]] && {
                 atlas .echo a1 "scanning orphans..."
                 orphans=( $(pacman -Qqtd) )
             }
 
-            [[ $cmds =~ r ]] && {
+            [[ $ops =~ r ]] && {
                 atlas .echo a1 "scanning root..."
                 root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
             }
 
-            atlas .extract $cmds
+            atlas .extract $ops
         } 2>/dev/null
 
         atlas .pulse 0
@@ -567,3 +556,4 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════════════════════───┄┄ #
+
