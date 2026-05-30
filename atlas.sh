@@ -12,8 +12,10 @@ atlas() {
         local cache_limit=6
 
     }
+    
+#  ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-#  ├── cortex ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+#  ╭── cortex ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 
     [[ $code = samsara ]] || {
 
@@ -46,7 +48,7 @@ atlas() {
             echo " │ x  ·  erase atlas         │"
             echo " ╰───────────────────────────╯$n"
             echo " ╭── modifiers ──────────────╮"
-            echo " │ I  ·  implicit            │"
+            echo " │ I  ·  intelligent         │"
             echo " │ Q  ·  quick               │"
             echo " ╰───────────────────────────╯$n"
             kill -2 $$
@@ -116,7 +118,7 @@ atlas() {
         [[ $cmds =~ I && $(tac "$(pacman-conf LogFile)" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
             atlas .echo q1 "scan for updates?"
 
-            [[ ${REPLY,} = y ]] && {
+            [[ ${REPLY,} = n ]] || {
                 atlas .await 1
 
                 $(type -P yay || type -P paru || echo "$auth pacman") -Syu
@@ -141,7 +143,7 @@ atlas() {
         [[ $orphans ]] && {
             atlas .echo q1 "remove orphans?"
 
-            [[ ${REPLY,} = y ]] && {
+            [[ ${REPLY,} = n ]] || {
                 atlas .await 1
                 $auth pacman -Rns ${orphans[@]}
                 atlas .await 0
@@ -154,19 +156,17 @@ atlas() {
         local csize=$(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)
 
         [[ $cmds =~ I ]] && (( cache_limit<<30 > csize )) || {
-            atlas .echo q1 "clear cache ($(numfmt --to=iec "$csize"))?"
+            (( csize )) && {
+                atlas .echo q1 "clear cache ($(numfmt --to=iec "$csize"))?"
 
-            [[ ${REPLY,} = y ]] && {
-                atlas .await 1
-                yes | $auth pacman -Sc &>/dev/null
-                atlas .await 0
-
-                local csized=$(( csize - $(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1) ))
-
-                (( csized )) && {
+                [[ ${REPLY,} = n ]] || {
+                    atlas .await 1
+                    yes | $auth pacman -Scc &>/dev/null
+                    atlas .await 0
+                    local csized=$(( csize - $(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1) ))
                     atlas .echo a0 "cleared: $(numfmt --to=iec "$csized")"
-                :;} || atlas .echo i1 "nothing to clear"
-            }
+                }
+            :;} || atlas .echo i1 "nothing to clear"
         }
 
     }
@@ -266,9 +266,9 @@ atlas() {
                 local overwrites=( "$save/supersede"/*/ ) dst i
 
                 [[ -d $overwrites ]] && {
-                    atlas .echo q0 "overwrite ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "destinations" || echo "destination")?"
+                    atlas .echo q1 "overwrite ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "destinations" || echo "destination")?"
 
-                    [[ ${REPLY,} = y ]] && {
+                    [[ ${REPLY,} = n ]] || {
                         atlas .await 1
 
                         for i in "${overwrites[@]%/}"
@@ -361,14 +361,12 @@ atlas() {
         }
 
         [[ $ops = q1 ]] && {
-            [[ $cmds =~ I ]] && {
-                echo -n "✧ $say {y/${bold}n$reset} "
-                atlas .emit q
-                atlas .await 1
-                read -s -n 1
-                atlas .await 0
-                echo -n "$r$clear"
-            :;} || REPLY=y
+            echo -n "✧ $say {${bold}y$reset/n} "
+            atlas .emit q
+            atlas .await 1
+            read -s -n 1
+            atlas .await 0
+            echo -n "$r$clear"
         }
 
     }
