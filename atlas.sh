@@ -51,12 +51,12 @@ atlas() {
             echo " │ I  ·  intelligent         │"
             echo " │ Q  ·  quick               │"
             echo " ╰───────────────────────────╯$n"
-            kill -2 $$
+            return
         }
 
         [[ ${cmds//[raioucsdgxIQ]} ]] && {
             atlas .echo i0 "not sure what you mean, see 'atlas ?' for syntax"
-            kill -2 $$
+            return
         }
 
         atlas .signal 1
