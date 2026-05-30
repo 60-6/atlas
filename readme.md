@@ -25,8 +25,6 @@ atlas has a configuration module you can edit.
 
 'cache_limit' is the package cache size limit before atlas asks you to clear it, in gb.
 
-calling operations directly ignores configuration rules.
-
 ### save/gen
 
 'atlas s' saves your system packages and your overwrites.
