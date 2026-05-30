@@ -4,14 +4,11 @@ atlas is a tool for arch linux that lets you view, upgrade, clean, and declare y
 
 it has no dependencies and it's read-only by default.
 
-you can use it by pasting it into '~/.bashrc'.
+you can use it by pasting 'atlas.sh' into '~/.bashrc' or sourcing it.
 
 see 'atlas ?' for syntax.
 
-
-
 ## extra
-
 
 ### configuration
 
