@@ -33,29 +33,30 @@ atlas() {
 
         [[ ${cmds//[IQ]} ]] || cmds+=$default_commands
 
-        [[ $cmds = \? ]] && {
-            atlas .echo a0 "atlas syntax"
-            echo " ╭── operations ─────────────╮"
-            echo " │ r  ·  view root           │"
-            echo " │ a  ·  view apps           │"
-            echo " │ i  ·  view app ids        │"
-            echo " │ o  ·  view orphans        │"
-            echo " │ u  ·  upgrade             │"
-            echo " │ c  ·  cleanup             │"
-            echo " │ s  ·  save system         │"
-            echo " │ d  ·  view difference     │"
-            echo " │ g  ·  generate system     │"
-            echo " │ x  ·  erase atlas         │"
-            echo " ╰───────────────────────────╯$n"
-            echo " ╭── modifiers ──────────────╮"
-            echo " │ I  ·  intelligent         │"
-            echo " │ Q  ·  quick               │"
-            echo " ╰───────────────────────────╯$n"
-            return
-        }
-
         [[ ${cmds//[raioucsdgxIQ]} ]] && {
-            atlas .echo i0 "not sure what you mean, see 'atlas ?' for syntax"
+            [[ $cmds = \? ]] && {
+                atlas .echo a0 "atlas syntax"
+                echo " ╭── operations ─────────────╮"
+                echo " │ r  ·  view root           │"
+                echo " │ a  ·  view apps           │"
+                echo " │ i  ·  view app ids        │"
+                echo " │ o  ·  view orphans        │"
+                echo " │ u  ·  upgrade             │"
+                echo " │ c  ·  cleanup             │"
+                echo " │ s  ·  save system         │"
+                echo " │ d  ·  view difference     │"
+                echo " │ g  ·  generate system     │"
+                echo " │ x  ·  erase atlas         │"
+                echo " ╰───────────────────────────╯$n"
+                echo " ╭── modifiers ──────────────╮"
+                echo " │ I  ·  intelligent         │"
+                echo " │ Q  ·  quick               │"
+                echo " ╰───────────────────────────╯$n"
+            :;} || {
+                atlas .echo i0 "not sure what you mean, see 'atlas ?' for syntax"
+            }
+
+            echo
             return
         }
 
