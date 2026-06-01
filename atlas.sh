@@ -8,11 +8,11 @@ atlas() {
 
         local save_directory="/tmp"
         local default_commands=raosudcI
-        local upgrade_interval=6
+        local update_interval=6
         local cache_limit=6
 
     }
-    
+
 #  ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 #  ╭── cortex ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
@@ -116,7 +116,7 @@ atlas() {
 
     [[ $1 = :u ]] && {
 
-        [[ $cmds =~ I && $(tac "$(pacman-conf LogFile)" | grep -m1 upgraded) > [$(date -d -${upgrade_interval}days +%F)U ]] || {
+        [[ $cmds =~ I && $(tac "$(pacman-conf LogFile)" | grep -m1 upgraded) > [$(date -d -${update_interval}days +%F)U ]] || {
             atlas .echo q1 "scan for updates?"
 
             [[ ${REPLY,} = n ]] || {
@@ -183,7 +183,7 @@ atlas() {
 
             local overwrites=( "$save/supersede"/*/ ) i dst oentry dentry
 
-            [[ -d $overwrites ]] && {
+            [[ ! -d $overwrites || $cmds =~ I && $(date -r "$overwrites" +%F) > $(date -d -${update_interval}days +%F) ]] || {
                 atlas .echo q1 "sync overwrites?"
 
                 [[ ${REPLY,} = n ]] || {
@@ -562,4 +562,3 @@ atlas() {
 }
 
 # ┄┄───════════════════════════════════════════════════════════════════════════════════════ //  ▲  \\ ════════════════════════════════════════════════════════════════════════════════════───┄┄ #
-
