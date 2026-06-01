@@ -278,7 +278,10 @@ atlas() {
                             dst=${dst//:/\/}
                             dst=${dst/#@/$HOME}
                             mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
-                            $auth cp -a --remove-destination "$i"/. "$dst"/
+
+                            find "$i" -mindepth 1 -maxdepth 1 | while IFS= read -r oentry
+                            do $auth cp -a --remove-destination "$oentry" "$dst"
+                            done
                         done
 
                         atlas .await 0
