@@ -18,7 +18,7 @@ atlas has a configuration module you can edit.
 
 'default_commands' run when calling atlas without any arguments.
 
-'update_interval' is how often atlas asks you to upgrade, in days.
+'update_interval' is how often atlas asks you to update, in days.
 
 'cache_limit' is the package cache size limit before atlas asks you to clear it, in gb.
 
