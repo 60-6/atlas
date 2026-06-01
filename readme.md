@@ -46,6 +46,6 @@ ex: '<save_directory>/atlas/supersede/@:.config/kitty/kitty.conf' overwrites '~/
 
 'atlas s' can sync overwrite entries from your system, it handles permissions automatically.
 
-
+---
 
 if you've got questions or anything, discussions are there.
