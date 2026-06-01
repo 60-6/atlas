@@ -181,25 +181,35 @@ atlas() {
             printf "%s$n" ${apps[@]} > "$save/apps"
             printf "%s$n" ${orphans[@]} > "$save/orphans"
 
-            local overwrites=( "$save/supersede"/*/ ) dst i
+            local overwrites=( "$save/supersede"/*/ ) i dst oentry dentry
 
             [[ -d $overwrites ]] && {
-                atlas .await 1
+                atlas .echo q1 "sync overwrites?"
 
-                for i in "${overwrites[@]%/}"
-                do
-                    dst=${i##*/}
-                    dst=${dst//:/\/}
-                    dst=${dst/#@/$HOME}
+                [[ ${REPLY,} = n ]] || {
+                    atlas .await 1
 
-                    find "$i" -not -type d | while IFS= read -r oentry
+                    for i in "${overwrites[@]%/}"
                     do
-                        dentry=$dst/${oentry#$i/}
-                        $([[ -r $dentry ]] || echo "$auth") cp -a --remove-destination "$dentry" "$oentry" 2>/dev/null || atlas .echo i1 "couldn't save $dentry"
-                    done
-                done
+                        dst=${i##*/}
+                        dst=${dst//:/\/}
+                        dst=${dst/#@/$HOME}
 
-                atlas .await 0
+                        $auth find "$i" | while IFS= read -r oentry
+                        do
+                            [[ $oentry = "$i" ]] && dentry=$dst || dentry=$dst/${oentry#$i/}
+
+                            $auth test -e "$dentry" && {
+                                $auth test -d "$oentry" && {
+                                    $auth chmod --reference="$dentry" "$oentry"
+                                    $auth chown --reference="$dentry" "$oentry"
+                                :;} || $auth cp -a --remove-destination "$dentry" "$oentry"
+                            :;} || atlas .echo i1 "couldn't save $dentry"
+                        done
+                    done
+
+                    atlas .await 0
+                }
             }
 
             atlas .echo i1 "saved"
@@ -264,7 +274,7 @@ atlas() {
 
                 atlas .await 0
 
-                local overwrites=( "$save/supersede"/*/ ) dst i
+                local overwrites=( "$save/supersede"/*/ ) i dst
 
                 [[ -d $overwrites ]] && {
                     atlas .echo q1 "overwrite ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "destinations" || echo "destination")?"
@@ -278,10 +288,7 @@ atlas() {
                             dst=${dst//:/\/}
                             dst=${dst/#@/$HOME}
                             mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
-
-                            find "$i" -mindepth 1 -maxdepth 1 | while IFS= read -r oentry
-                            do $auth cp -a --remove-destination "$oentry" "$dst"
-                            done
+                            $auth cp -a --remove-destination "$i/." "$dst"
                         done
 
                         atlas .await 0
