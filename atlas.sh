@@ -195,17 +195,27 @@ atlas() {
                         dst=${dst//:/\/}
                         dst=${dst/#@/$HOME}
 
-                        $auth find "$i" | while IFS= read -r oentry
-                        do
-                            [[ $oentry = "$i" ]] && dentry=$dst || dentry=$dst/${oentry#$i/}
+                        [[ $dst = *+ ]] && {
+                            dst=${dst%+}
 
-                            $auth test -e "$dentry" && {
-                                $auth test -d "$oentry" && {
-                                    $auth chmod --reference="$dentry" "$oentry"
-                                    $auth chown --reference="$dentry" "$oentry"
-                                :;} || $auth cp -a --remove-destination "$dentry" "$oentry"
-                            :;} || atlas .echo i1 "couldn't save $dentry"
-                        done
+                            $auth test -e "$dst" && {
+                                $auth rm -rf "$i"
+                                $auth mkdir -p "$i"
+                                $auth cp -a --remove-destination "$dst/." "$i"
+                            :;} || atlas .echo i1 "couldn't sync $dst"
+                        :;} || {
+                            $auth find "$i" | while IFS= read -r oentry
+                            do
+                                dentry=${oentry/$i/$dst}
+
+                                $auth test -e "$dentry" && {
+                                    $auth test -d "$oentry" && {
+                                        $auth chmod --reference="$dentry" "$oentry"
+                                        $auth chown --reference="$dentry" "$oentry"
+                                    :;} || $auth cp -a --remove-destination "$dentry" "$oentry"
+                                :;} || atlas .echo i1 "couldn't sync $dentry"
+                            done
+                        }
                     done
 
                     atlas .await 0
@@ -287,6 +297,12 @@ atlas() {
                             dst=${i##*/}
                             dst=${dst//:/\/}
                             dst=${dst/#@/$HOME}
+
+                            [[ $dst = *+ ]] && {
+                                dst=${dst%+}
+                                $auth rm -rf "$dst"
+                            }
+
                             mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
                             $auth cp -a --remove-destination "$i/." "$dst"
                         done
