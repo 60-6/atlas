@@ -40,7 +40,7 @@ inside atlas's save directory, you'll find a 'supersede' directory where you can
 
 name each overwrite directory in supersede after its destination directory, use '@' instead of '~' and ':' instead of '/'.
 
-add '+' to the end of the overwrite name to fully replace the destination instead of merging.
+add '+' to the end of the overwrite name to fully sync and replace the destination instead of merging.
 
 anything under the overwrite directories will be regenerated when running 'atlas g'.
 
