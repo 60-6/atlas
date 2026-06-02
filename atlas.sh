@@ -202,7 +202,7 @@ atlas() {
                                 $auth rm -rf "$i"
                                 $auth mkdir -p "$i"
                                 $auth cp -a --remove-destination "$dst/." "$i"
-                            :;} || atlas .echo i1 "couldn't sync $dst"
+                            :;} || atlas .echo i1 "couldn't read $dst"
                         :;} || {
                             $auth find "$i" | while IFS= read -r oentry
                             do
@@ -213,7 +213,7 @@ atlas() {
                                         $auth chmod --reference="$dentry" "$oentry"
                                         $auth chown --reference="$dentry" "$oentry"
                                     :;} || $auth cp -a --remove-destination "$dentry" "$oentry"
-                                :;} || atlas .echo i1 "couldn't sync $dentry"
+                                :;} || atlas .echo i1 "couldn't read $dentry"
                             done
                         }
                     done
