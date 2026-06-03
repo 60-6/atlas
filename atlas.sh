@@ -183,7 +183,7 @@ atlas() {
 
             local overwrites=( "$save/supersede"/*/ ) i dst oentry dentry
 
-            [[ ! -d $overwrites || $cmds =~ I && $(date -r "$overwrites" +%F) > $(date -d -${update_interval}days +%F) ]] || {
+            [[ ! -d $overwrites || $cmds =~ I && $(date -r "$save/supersede" +%F) > $(date -d -${update_interval}days +%F) ]] || {
                 atlas .echo q1 "sync overwrites?"
 
                 [[ ${REPLY,} = n ]] || {
@@ -219,6 +219,8 @@ atlas() {
                     done
 
                     atlas .await 0
+
+                    touch "$save/supersede"
                 }
             }
 
