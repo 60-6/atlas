@@ -142,7 +142,7 @@ atlas() {
     [[ $1 = :c ]] && {
 
         [[ $orphans ]] && {
-            atlas .echo q1 "remove orphans?"
+            atlas .echo q1 "remove ${#orphans[@]} $((( ${#orphans[@]} - 1 )) && echo "orphans" || echo "orphan")?"
 
             [[ ${REPLY,} = n ]] || {
                 atlas .await 1
@@ -184,7 +184,7 @@ atlas() {
             local overwrites=( "$save/supersede"/*/ )
 
             [[ ! -d $overwrites || $cmds =~ I && $(date -r "$save/supersede" +%F) > $(date -d -${update_interval}days +%F) ]] || {
-                atlas .echo q1 "sync overwrites?"
+                atlas .echo q1 "apply ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")?"
 
                 [[ ${REPLY,} = n ]] || {
                     atlas .overwrite 0
@@ -231,7 +231,7 @@ atlas() {
     [[ $1 = :g ]] && {
 
         [[ -r $save ]] && {
-            atlas .echo i1 "i hope you understand that this is risky..."
+            atlas .echo i1 "i hope you understand that this is risky"
             atlas .echo q0 "set up aur and flatpak if you need, proceed?"
 
             [[ ${REPLY,} = y ]] && {
@@ -257,7 +257,7 @@ atlas() {
                 local overwrites=( "$save/supersede"/*/ )
 
                 [[ -d $overwrites ]] && {
-                    atlas .echo q1 "overwrite ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "destinations" || echo "destination")?"
+                    atlas .echo q1 "apply ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")?"
                     [[ ${REPLY,} = n ]] || atlas .overwrite 1
                 }
 
