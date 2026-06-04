@@ -185,7 +185,11 @@ atlas() {
 
             [[ ! -d $overwrites || $cmds =~ I && $(date -r "$save/supersede" +%F) > $(date -d -${update_interval}days +%F) ]] || {
                 atlas .echo q1 "sync overwrites?"
-                [[ ${REPLY,} = n ]] || atlas .overwrite 0
+
+                [[ ${REPLY,} = n ]] || {
+                    atlas .overwrite 0
+                    touch "$save/supersede"
+                }
             }
 
             atlas .echo i1 "saved"
@@ -428,8 +432,6 @@ atlas() {
         done
 
         atlas .await 0
-
-        (( stage )) || touch "$save/supersede"
 
     }
 
