@@ -202,7 +202,7 @@ atlas() {
         :;} || atlas .echo i0 "can't diff against nothing"
 
     }
-    
+
     [[ $1 = :s ]] && {
 
         mkdir -p "$save/supersede"
@@ -215,7 +215,7 @@ atlas() {
             local overwrites=( "$save/supersede"/*/ )
 
             [[ ! -d $overwrites || $cmds =~ I && $(date -r "$save/supersede" +%F) > $(date -d -${update_interval}days +%F) ]] || {
-                atlas .echo q1 "apply ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")?"
+                atlas .echo q1 "sync ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")?"
 
                 [[ ${REPLY,} = n ]] || {
                     atlas .overwrite 0
@@ -410,16 +410,16 @@ atlas() {
                     $auth cp -a "$from/." "$to"
                 :;} || atlas .echo i1 "couldn't read $from"
             :;} || {
-                (( ! stage )) || mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
-
                 $auth find "$i" | while IFS= read -r oentry
                 do
                     dentry=${oentry/$i/$dst}
 
                     (( stage )) && fentry=$oentry tentry=$dentry || fentry=$dentry tentry=$oentry
 
-                    $auth stat "$fentry" &>/dev/null && {
-                        $auth test -d "$tentry" && {
+                    $auth test -e "$fentry" -o -L "$fentry" && {
+                        $auth test -d "$fentry" && {
+                            $auth test -d "$tentry" || $auth rm -rf "$tentry"
+                            mkdir -p "$tentry" 2>/dev/null || $auth mkdir -p "$tentry"
                             $auth chmod --reference="$fentry" "$tentry"
                             $auth chown --reference="$fentry" "$tentry"
                         :;} || {
