@@ -33,7 +33,7 @@ atlas() {
 
         [[ ${cmds//[IQ]} ]] || cmds+=$default_commands
 
-        [[ ${cmds//[raioucsdgxIQ]} ]] && {
+        [[ ${cmds//[raioducsgxIQ]} ]] && {
             [[ $cmds = \? ]] && {
                 atlas .echo a0 "atlas syntax"
                 echo " ╭── operations ─────────────╮"
@@ -41,10 +41,10 @@ atlas() {
                 echo " │ a  ·  view apps           │"
                 echo " │ i  ·  view app ids        │"
                 echo " │ o  ·  view orphans        │"
+                echo " │ d  ·  view difference     │"
                 echo " │ u  ·  upgrade             │"
                 echo " │ c  ·  cleanup             │"
                 echo " │ s  ·  save system         │"
-                echo " │ d  ·  view difference     │"
                 echo " │ g  ·  generate system     │"
                 echo " │ x  ·  erase atlas         │"
                 echo " ╰───────────────────────────╯$n"
@@ -172,31 +172,6 @@ atlas() {
 
     }
 
-    [[ $1 = :s ]] && {
-
-        mkdir -p "$save/supersede"
-
-        [[ -w $save ]] && {
-            printf "%s$n" ${root[@]} > "$save/root"
-            printf "%s$n" ${apps[@]} > "$save/apps"
-            printf "%s$n" ${orphans[@]} > "$save/orphans"
-
-            local overwrites=( "$save/supersede"/*/ )
-
-            [[ ! -d $overwrites || $cmds =~ I && $(date -r "$save/supersede" +%F) > $(date -d -${update_interval}days +%F) ]] || {
-                atlas .echo q1 "apply ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")?"
-
-                [[ ${REPLY,} = n ]] || {
-                    atlas .overwrite 0
-                    touch "$save/supersede"
-                }
-            }
-
-            atlas .echo i1 "saved"
-        :;} || atlas .echo i0 "...? use a proper save path"
-
-    }
-
     [[ $1 = :d ]] && {
 
         [[ -r $save ]] && {
@@ -225,6 +200,31 @@ atlas() {
                 :;} || [[ ! -r $save/$i ]] || atlas .echo i1 "$i difference: nil"
             done 2>/dev/null
         :;} || atlas .echo i0 "can't diff against nothing"
+
+    }
+    
+    [[ $1 = :s ]] && {
+
+        mkdir -p "$save/supersede"
+
+        [[ -w $save ]] && {
+            printf "%s$n" ${root[@]} > "$save/root"
+            printf "%s$n" ${apps[@]} > "$save/apps"
+            printf "%s$n" ${orphans[@]} > "$save/orphans"
+
+            local overwrites=( "$save/supersede"/*/ )
+
+            [[ ! -d $overwrites || $cmds =~ I && $(date -r "$save/supersede" +%F) > $(date -d -${update_interval}days +%F) ]] || {
+                atlas .echo q1 "apply ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")?"
+
+                [[ ${REPLY,} = n ]] || {
+                    atlas .overwrite 0
+                    touch "$save/supersede"
+                }
+            }
+
+            atlas .echo i1 "saved"
+        :;} || atlas .echo i0 "...? use a proper save path"
 
     }
 
