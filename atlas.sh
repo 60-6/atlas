@@ -167,7 +167,7 @@ atlas() {
                     local csized=$(( csize - $(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1) ))
                     atlas .echo a0 "cleared: $(numfmt --to=iec "$csized")"
                 }
-            :;} || atlas .echo i1 "nothing to clear"
+            :;} || atlas .echo i1 "cache is empty"
         }
 
     }
@@ -181,47 +181,11 @@ atlas() {
             printf "%s$n" ${apps[@]} > "$save/apps"
             printf "%s$n" ${orphans[@]} > "$save/orphans"
 
-            local overwrites=( "$save/supersede"/*/ ) i dst oentry dentry
+            local overwrites=( "$save/supersede"/*/ )
 
             [[ ! -d $overwrites || $cmds =~ I && $(date -r "$save/supersede" +%F) > $(date -d -${update_interval}days +%F) ]] || {
                 atlas .echo q1 "sync overwrites?"
-
-                [[ ${REPLY,} = n ]] || {
-                    atlas .await 1
-
-                    for i in "${overwrites[@]%/}"
-                    do
-                        dst=${i##*/}
-                        dst=${dst//:/\/}
-                        dst=${dst/#@/$HOME}
-
-                        [[ $dst = *+ ]] && {
-                            dst=${dst%+}
-
-                            $auth test -e "$dst" && {
-                                $auth rm -rf "$i"
-                                $auth mkdir -p "$i"
-                                $auth cp -a --remove-destination "$dst/." "$i"
-                            :;} || atlas .echo i1 "couldn't read $dst"
-                        :;} || {
-                            $auth find "$i" | while IFS= read -r oentry
-                            do
-                                dentry=${oentry/$i/$dst}
-
-                                $auth test -e "$dentry" && {
-                                    $auth test -d "$oentry" && {
-                                        $auth chmod --reference="$dentry" "$oentry"
-                                        $auth chown --reference="$dentry" "$oentry"
-                                    :;} || $auth cp -a --remove-destination "$dentry" "$oentry"
-                                :;} || atlas .echo i1 "couldn't read $dentry"
-                            done
-                        }
-                    done
-
-                    atlas .await 0
-
-                    touch "$save/supersede"
-                }
+                [[ ${REPLY,} = n ]] || atlas .overwrite 0
             }
 
             atlas .echo i1 "saved"
@@ -286,31 +250,11 @@ atlas() {
 
                 atlas .await 0
 
-                local overwrites=( "$save/supersede"/*/ ) i dst
+                local overwrites=( "$save/supersede"/*/ )
 
                 [[ -d $overwrites ]] && {
                     atlas .echo q1 "overwrite ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "destinations" || echo "destination")?"
-
-                    [[ ${REPLY,} = n ]] || {
-                        atlas .await 1
-
-                        for i in "${overwrites[@]%/}"
-                        do
-                            dst=${i##*/}
-                            dst=${dst//:/\/}
-                            dst=${dst/#@/$HOME}
-
-                            [[ $dst = *+ ]] && {
-                                dst=${dst%+}
-                                $auth rm -rf "$dst"
-                            }
-
-                            mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
-                            $auth cp -a --remove-destination "$i/." "$dst"
-                        done
-
-                        atlas .await 0
-                    }
+                    [[ ${REPLY,} = n ]] || atlas .overwrite 1
                 }
 
                 atlas .echo a0 "all done, make sure there weren't any errors"
@@ -355,29 +299,29 @@ atlas() {
 
     [[ $1 = .echo ]] && {
 
-        local ops=$2 say=$3
+        local op=$2 say=$3
 
-        [[ $ops = a0 ]] && {
+        [[ $op = a0 ]] && {
             echo "$bold「 $say 」$reset$n"
             atlas .emit a
         }
 
-        [[ $ops = a1 ]] && {
+        [[ $op = a1 ]] && {
             echo -n "$origin$dim$say$reset$clear"
             [[ $cmds =~ Q ]] || read -t 0.3
         }
 
-        [[ $ops = i0 ]] && {
+        [[ $op = i0 ]] && {
             echo "$red⚠︎ $say$reset$n"
             atlas .emit e
         }
 
-        [[ $ops = i1 && ! $cmds =~ I ]] && {
+        [[ $op = i1 && ! $cmds =~ I ]] && {
             echo "$dim∴ $say$reset$n"
             atlas .emit i
         }
 
-        [[ $ops = q0 ]] && {
+        [[ $op = q0 ]] && {
             echo -n "$red⚠︎ $say {y/${bold}n$reset$red}$reset "
             atlas .emit w
             atlas .await 1
@@ -386,7 +330,7 @@ atlas() {
             echo -n "$r$clear"
         }
 
-        [[ $ops = q1 ]] && {
+        [[ $op = q1 ]] && {
             echo -n "✧ $say {${bold}y$reset/n} "
             atlas .emit q
             atlas .await 1
@@ -399,11 +343,11 @@ atlas() {
 
     [[ $1 = .emit ]] && {
 
-        local ops=$2
+        local op=$2
         local -A ids=( [a]=window-attention [e]=dialog-error [i]=dialog-information [q]=window-question [w]=dialog-warning )
 
         [[ $cmds =~ Q ]] || kill -0 ${async[emit]} 2>/dev/null || {
-            canberra-gtk-play -i ${ids[$ops]} &async[emit]=$!
+            canberra-gtk-play -i ${ids[$op]} &async[emit]=$!
             disown ${async[emit]}
         } &>/dev/null
 
@@ -411,34 +355,81 @@ atlas() {
 
     [[ $1 = .extract ]] && {
 
-        local ops=$2 pkg opt
+        local pkg opt
 
-        [[ $ops =~ l && ! $cmds =~ Q ]] && {
-            atlas .echo a1 "extracting lineage..."
-            lineage=()
+        lineage=()
 
-            while read pkg opt
-            do [[ " ${root[@]} " =~ " $opt " ]] && lineage[$pkg]+=" $opt "
-            done < <(LC_ALL=C pacman -Qi ${root[@]} | awk '
-                proceed && /^ / {
-                    gsub(/^ +|:.*/, "")
-                    print pkg, $0
-                    next
-                }
+        while read pkg opt
+        do [[ " ${root[@]} " =~ " $opt " ]] && lineage[$pkg]+=" $opt "
+        done < <(LC_ALL=C pacman -Qi ${root[@]} | awk '
+            proceed && /^ / {
+                gsub(/^ +|:.*/, "")
+                print pkg, $0
+                next
+            }
 
-                proceed = 0
+            proceed = 0
 
-                /^Name/ { pkg = $NF }
+            /^Name/ { pkg = $NF }
 
-                /^Optional Deps/ {
-                    gsub(/^Optional Deps *: *|:.*/, "")
-                    print pkg, $0
-                    proceed = 1
-                }
-            ')
+            /^Optional Deps/ {
+                gsub(/^Optional Deps *: *|:.*/, "")
+                print pkg, $0
+                proceed = 1
+            }
+        ')
 
-            atlas .cycle "${!lineage[*]}" lineage
-        }
+        atlas .cycle "${!lineage[*]}" lineage
+
+    }
+
+    [[ $1 = .overwrite ]] && {
+
+        local stage=$2 i dst
+
+        atlas .await 1
+
+        for i in "${overwrites[@]%/}"
+        do
+            dst=${i##*/}
+            dst=${dst//:/\/}
+            dst=${dst/#@/$HOME}
+
+            [[ $dst = *+ ]] && {
+                dst=${dst%+}
+
+                (( stage )) && local from=$i to=$dst || local from=$dst to=$i
+
+                $auth test -d "$from" && {
+                    $auth rm -rf "$to"
+                    mkdir -p "$to" 2>/dev/null || $auth mkdir -p "$to"
+                    $auth cp -a "$from/." "$to"
+                :;} || atlas .echo i1 "couldn't read $from"
+            :;} || {
+                (( ! stage )) || mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
+
+                $auth find "$i" | while IFS= read -r oentry
+                do
+                    dentry=${oentry/$i/$dst}
+
+                    (( stage )) && fentry=$oentry tentry=$dentry || fentry=$dentry tentry=$oentry
+
+                    $auth stat "$fentry" &>/dev/null && {
+                        $auth test -d "$tentry" && {
+                            $auth chmod --reference="$fentry" "$tentry"
+                            $auth chown --reference="$fentry" "$tentry"
+                        :;} || {
+                            $auth rm -rf "$tentry"
+                            $auth cp -a "$fentry" "$tentry"
+                        }
+                    :;} || atlas .echo i1 "couldn't read $fentry"
+                done
+            }
+        done
+
+        atlas .await 0
+
+        (( stage )) || touch "$save/supersede"
 
     }
 
@@ -496,7 +487,7 @@ atlas() {
         modified[f1]=$(stat -c %Y /var/lib/flatpak 2>/dev/null)
 
         [[ ${modified[l0]} = ${modified[l1]} ]] || {
-            scanned=${scanned//[lor]}
+            scanned=${scanned//[orl]}
             modified[l0]=${modified[l1]}
         }
 
@@ -506,7 +497,7 @@ atlas() {
         }
 
         ops=${ops/c/o}
-        ops=${ops/r/lor}
+        ops=${ops/r/orl}
         ops=${ops/[ds]/ior}
         ops=${ops//[$scanned]}
         scanned+=$ops
@@ -534,7 +525,10 @@ atlas() {
                 root=( $(grep -vxFf <(printf "%s$n" ${orphans[@]}) <(pacman -Qqtt)) )
             }
 
-            atlas .extract $ops
+            [[ $ops =~ l && ! $cmds =~ Q ]] && {
+                atlas .echo a1 "extracting lineage..."
+                atlas .extract
+            }
         } 2>/dev/null
 
         atlas .pulse 0
