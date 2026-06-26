@@ -170,24 +170,20 @@ atlas() {
 
     [[ $1 = :u ]] && {
 
-        atlas .echo q1 "scan for updates?"
+        atlas .await 1
 
-        [[ ${REPLY,} = n ]] || {
-            atlas .await 1
+        $(type -P yay || type -P paru || echo "$auth pacman") -Syu
+        echo
 
-            $(type -P yay || type -P paru || echo "$auth pacman") -Syu
+        [[ $(type -P flatpak) ]] && {
+            flatpak update
             echo
-
-            [[ $(type -P flatpak) ]] && {
-                flatpak update && flatpak remove --unused
-                echo
-            }
-
-            atlas .await 0
-
-            local version=$(curl -fsS https://raw.githubusercontent.com/60-6/atlas/refs/heads/0/version)
-            [[ $version && ! $code = $version ]] && atlas .echo a0 "a new version of atlas is available if you care, github.com/60-6/atlas"
         }
+
+        atlas .await 0
+
+        local version=$(curl -fsS https://raw.githubusercontent.com/60-6/atlas/refs/heads/0/version)
+        [[ $version && ! $code = $version ]] && atlas .echo a0 "a new version of atlas is available if you care, github.com/60-6/atlas"
 
     }
 
@@ -230,6 +226,12 @@ atlas() {
                 atlas .echo a0 "cleared: $(numfmt --to=iec "$csized")"
             }
         :;} || atlas .echo i1 "cache is empty"
+
+        [[ $(type -P flatpak) ]] && {
+            atlas .echo i1 "removing unused runtimes..."
+            flatpak remove --unused
+            echo
+        }
 
     }
 
