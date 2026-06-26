@@ -21,8 +21,10 @@ see 'atlas ?' for syntax
 you can specify different save directories by using a generation marker as a second argument
 
 ex:
-  'atlas s x' saves to '~/atlas/x'
-  'atlas g x' generates from '~/atlas/x'
+```
+'atlas s x' saves to '~/atlas/x'
+'atlas g x' generates from '~/atlas/x'
+```
 
 ### supersede
 
@@ -37,7 +39,9 @@ add '+' to the end of the overwrite name to fully sync and replace the destinati
 anything under the overwrite directories will be regenerated when running 'atlas g'
 
 ex:
-  '~/atlas/supersede/@:.config/kitty/kitty.conf' maps to '~/.config/kitty/kitty.conf'
+```
+'~/atlas/supersede/@:.config/kitty/kitty.conf' maps to '~/.config/kitty/kitty.conf'
+```
 
 ---
 
