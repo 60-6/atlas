@@ -14,7 +14,7 @@ see 'atlas ?' for syntax
 
 'atlas d' shows you the package differences between your current system and the saved one
 
-'atlas s' creates an "atlas" folder in your home directory, it saves your system packages and your custom overwrites
+'atlas s' creates an 'atlas' folder in your home directory, it saves your system packages and your custom overwrites
 
 'atlas g' generates your system from atlas's save directory
 
