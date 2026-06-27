@@ -350,44 +350,44 @@ atlas() {
 
     [[ $1 = .overwrite ]] && {
 
-        local stage=$2 i dst
+        local stage=$2 i target
 
         atlas .await 1
 
         for i in "${overwrites[@]%/}"
         do
-            dst=${i##*/}
-            dst=${dst//:/\/}
-            dst=${dst/#@/$HOME}
+            target=${i##*/}
+            target=${target//:/\/}
+            target=${target/#@/$HOME}
 
-            [[ $dst = *+ ]] && {
-                dst=${dst%+}
+            [[ $target = *+ ]] && {
+                target=${target%+}
 
-                (( stage )) && local from=$i to=$dst || local from=$dst to=$i
+                (( stage )) && local src=$i dst=$target || local src=$target dst=$i
 
-                $auth test -d "$from" && {
-                    $auth rm -rf "$to"
-                    mkdir -p "$to" 2>/dev/null || $auth mkdir -p "$to"
-                    $auth cp -a "$from/." "$to"
-                :;} || atlas .echo i1 "couldn't read $from"
+                $auth test -d "$src" && {
+                    $auth rm -rf "$dst"
+                    mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
+                    $auth cp -a "$src/." "$dst"
+                :;} || atlas .echo i1 "couldn't read $src"
             :;} || {
                 $auth find "$i" | while IFS= read -r oentry
                 do
-                    dentry=${oentry/$i/$dst}
+                    tentry=${oentry/$i/$target}
 
-                    (( stage )) && fentry=$oentry tentry=$dentry || fentry=$dentry tentry=$oentry
+                    (( stage )) && sentry=$oentry dentry=$tentry || sentry=$tentry dentry=$oentry
 
-                    $auth test -e "$fentry" -o -L "$fentry" && {
-                        $auth test -d "$fentry" && {
-                            $auth test -d "$tentry" || $auth rm -rf "$tentry"
-                            mkdir -p "$tentry" 2>/dev/null || $auth mkdir -p "$tentry"
-                            $auth chmod --reference="$fentry" "$tentry"
-                            $auth chown --reference="$fentry" "$tentry"
+                    $auth test -e "$sentry" -o -L "$sentry" && {
+                        $auth test -d "$sentry" && {
+                            $auth test -d "$dentry" || $auth rm -f "$dentry"
+                            mkdir -p "$dentry" 2>/dev/null || $auth mkdir -p "$dentry"
+                            $auth chmod --reference="$sentry" "$dentry"
+                            $auth chown --reference="$sentry" "$dentry"
                         :;} || {
-                            $auth rm -rf "$tentry"
-                            $auth cp -a "$fentry" "$tentry"
+                            $auth rm -f "$dentry"
+                            $auth cp -a "$sentry" "$dentry"
                         }
-                    :;} || atlas .echo i1 "couldn't read $fentry"
+                    :;} || atlas .echo i1 "couldn't read $sentry"
                 done
             }
         done
