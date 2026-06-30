@@ -8,7 +8,7 @@ you can use atlas by pasting 'atlas.sh' into '~/.bashrc' or sourcing it
 
 see 'atlas ?' for syntax
 
-## extra information
+### extra information
 
 'atlas d' shows you the package differences between your current system and the saved state
 
