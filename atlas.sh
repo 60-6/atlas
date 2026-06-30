@@ -68,7 +68,7 @@ atlas() {
         [[ $appnames ]] && {
             echo "${bold}apps (${#appnames[@]})$reset"
             atlas .render appnames null
-        :;} || atlas .echo i1 "apps: nil"
+        :;} || atlas .echo i1 "apps: none"
 
     }
 
@@ -77,13 +77,13 @@ atlas() {
         [[ $apps ]] && {
             echo "${bold}app ids (${#apps[@]})$reset"
             atlas .render apps null
-        :;} || atlas .echo i1 "app ids: nil"
+        :;} || atlas .echo i1 "app ids: none"
 
     }
 
     [[ $1 = :d ]] && {
 
-        [[ -r $save ]] && {
+        [[ -d $save ]] && {
             local i
             local -A delta
 
@@ -99,44 +99,41 @@ atlas() {
                     [[ ${delta[${i}0]} ]] && printf " $dim⊖ %s$reset$n" ${delta[${i}0]}
                     [[ ${delta[${i}1]} ]] && printf " ⊕ %s$n" ${delta[${i}1]}
                     echo
-                :;} || [[ ! -r $save/$i ]] || atlas .echo i1 "$i difference: nil"
+                :;} || [[ ! -f $save/$i ]] || atlas .echo i1 "$i difference: none"
             done 2>/dev/null
-        :;} || atlas .echo i0 "can't diff against nothing"
+        :;} || atlas .echo i0 "you forgot to save silly"
 
     }
 
     [[ $1 = :s ]] && {
 
         mkdir -p "$save/supersede"
+        printf "%s$n" ${root[@]} > "$save/root"
+        printf "%s$n" ${apps[@]} > "$save/apps"
 
-        [[ -w $save ]] && {
-            printf "%s$n" ${root[@]} > "$save/root"
-            printf "%s$n" ${apps[@]} > "$save/apps"
+        local overwrites=( "$save/supersede"/*/ )
 
-            local overwrites=( "$save/supersede"/*/ )
+        [[ -d $overwrites ]] && {
+            atlas .echo q1 "sync ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")?"
 
-            [[ -d $overwrites ]] && {
-                atlas .echo q1 "sync ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")?"
-
-                [[ ${REPLY,} = n ]] || {
-                    atlas .overwrite 0
-                    touch "$save/supersede"
-                }
+            [[ ${REPLY,} = n ]] || {
+                atlas .overwrite 0
+                touch "$save/supersede"
             }
+        }
 
-            atlas .echo i1 "saved"
-        :;} || atlas .echo i0 "...? use a proper save path"
+        atlas .echo i1 "saved"
 
     }
 
     [[ $1 = :g ]] && {
 
-        [[ -r $save ]] && {
+        [[ -d $save ]] && {
             atlas .echo i1 "i hope you understand that this is risky"
             atlas .echo q0 "set up aur and flatpak if you need, proceed?"
 
             [[ ${REPLY,} = y ]] && {
-                atlas .await 1
+                atlas .tty 1
 
                 [[ -s $save/root ]] && $(type -P yay || type -P paru || echo "$auth pacman") -S --needed $(< "$save/root") && {
                     $auth pacman -D --asdeps $(pacman -Qqe)
@@ -153,7 +150,7 @@ atlas() {
                     echo
                 }
 
-                atlas .await 0
+                atlas .tty 0
 
                 local overwrites=( "$save/supersede"/*/ )
 
@@ -170,7 +167,7 @@ atlas() {
 
     [[ $1 = :u ]] && {
 
-        atlas .await 1
+        atlas .tty 1
 
         $(type -P yay || type -P paru || echo "$auth pacman") -Syu
         echo
@@ -180,7 +177,7 @@ atlas() {
             echo
         }
 
-        atlas .await 0
+        atlas .tty 0
 
         local version=$(curl -fsS https://raw.githubusercontent.com/60-6/atlas/refs/heads/0/version)
         [[ $version && ! $code = $version ]] && atlas .echo a0 "a new version of atlas is available if you care, github.com/60-6/atlas"
@@ -198,15 +195,15 @@ atlas() {
                 atlas .echo q1 "mark explicit instead?"
 
                 [[ ${REPLY,} = n ]] || {
-                    atlas .await 1
+                    atlas .tty 1
                     $auth pacman -D --asexplicit ${orphans[@]}
-                    atlas .await 0
+                    atlas .tty 0
                     echo
                 }
             :;} || {
-                atlas .await 1
+                atlas .tty 1
                 $auth pacman -Rns ${orphans[@]}
-                atlas .await 0
+                atlas .tty 0
                 echo
             }
         :;} || atlas .echo i1 "no orphans to remove"
@@ -219,9 +216,9 @@ atlas() {
             atlas .echo q1 "clear cache ($(numfmt --to=iec "$csize"))?"
 
             [[ ${REPLY,} = n ]] || {
-                atlas .await 1
+                atlas .tty 1
                 yes | $auth pacman -Scc &>/dev/null
-                atlas .await 0
+                atlas .tty 0
                 local csized=$(( csize - $(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1) ))
                 atlas .echo a0 "cleared: $(numfmt --to=iec "$csized")"
             }
@@ -237,7 +234,7 @@ atlas() {
 
 #  ├── core ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 
-    [[ $1 = .await ]] && {
+    [[ $1 = .tty ]] && {
 
         local stage=$2
 
@@ -289,18 +286,18 @@ atlas() {
         [[ $op = q0 ]] && {
             echo -n "$red⚠︎ $say {y/${bold}n$reset$red}$reset "
             atlas .emit w
-            atlas .await 1
+            atlas .tty 1
             read -s -n 1
-            atlas .await 0
+            atlas .tty 0
             echo -n "$r$clear"
         }
 
         [[ $op = q1 ]] && {
             echo -n "✧ $say {${bold}y$reset/n} "
             atlas .emit q
-            atlas .await 1
+            atlas .tty 1
             read -s -n 1
-            atlas .await 0
+            atlas .tty 0
             echo -n "$r$clear"
         }
 
@@ -352,7 +349,7 @@ atlas() {
 
         local stage=$2 i target
 
-        atlas .await 1
+        atlas .tty 1
 
         for i in "${overwrites[@]%/}"
         do
@@ -392,7 +389,7 @@ atlas() {
             }
         done
 
-        atlas .await 0
+        atlas .tty 0
 
     }
 
@@ -506,10 +503,10 @@ atlas() {
                 atlas .echo i0 "atlas terminated"
                 kill -2 $$
             ' 2 15
-            atlas .await 0
+            atlas .tty 0
         :;} || {
             trap - 2 15
-            atlas .await 1
+            atlas .tty 1
         }
 
     }
