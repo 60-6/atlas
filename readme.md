@@ -20,9 +20,9 @@ you can specify different save directories by passing a second argument
 
 ex:
 
-> 'atlas d x' diffs against '~/atlas/x'
-> 'atlas s x' saves to '~/atlas/x'
-> 'atlas g x' generates from '~/atlas/x'
+* 'atlas d x' diffs against '~/atlas/x'
+* 'atlas s x' saves to '~/atlas/x'
+* 'atlas g x' generates from '~/atlas/x'
 
 inside atlas's save directory, you'll find a 'supersede' directory where you can create 'overwrites'
 
@@ -32,8 +32,8 @@ add '+' to the end of the overwrite name to fully sync and replace the directory
 
 ex:
 
-> '<save_directory>/supersede/@:.config/kitty/kitty.conf' maps to '~/.config/kitty/kitty.conf'
-> '<save_directory>/supersede/@:.config+' maps to your entire '~/.config' directory
+* '<save_directory>/supersede/@:.config/kitty/kitty.conf' maps to '~/.config/kitty/kitty.conf'
+* '<save_directory>/supersede/@:.config+' maps to your entire '~/.config' directory
 
 'atlas s' can sync overwrite entries from your system, use it after creating an overwrite to handle permissions automatically
 
