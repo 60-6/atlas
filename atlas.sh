@@ -115,11 +115,7 @@ atlas() {
 
         [[ -d $overwrites ]] && {
             atlas .echo q1 "sync ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")?"
-
-            [[ ${REPLY,} = n ]] || {
-                atlas .overwrite 0
-                touch "$save/supersede"
-            }
+            [[ ${REPLY,} = n ]] || atlas .overwrite 0
         }
 
         atlas .echo i1 "saved"
