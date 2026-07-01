@@ -28,7 +28,7 @@ inside atlas's save directory, you'll find a 'supersede' directory where you can
 
 name each overwrite directory in supersede after its destination directory, use '@' instead of '~' and ':' instead of '/'
 
-add '+' to the end of the overwrite name to fully sync and replace the directory instead of merging
+adding '+' to the end of a directory name fully syncs and replaces the entire directory and its contents
 
 ex:
 
