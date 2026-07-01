@@ -355,7 +355,7 @@ atlas() {
 
             $auth find "$i" | while IFS= read -r oentry
             do
-                tentry=${oentry/$i/$target}
+                tentry=${oentry/"$i"/$target}
 
                 [[ $tentry = *+/* ]] || {
                     [[ $($auth stat -c %F "$oentry") = directory ]] && tentry=${tentry%+}
