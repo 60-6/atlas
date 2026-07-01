@@ -353,36 +353,28 @@ atlas() {
             target=${target//:/\/}
             target=${target/#@/$HOME}
 
-            [[ $target = *+ ]] && {
-                target=${target%+}
+            $auth find "$i" | while IFS= read -r oentry
+            do
+                tentry=${oentry/$i/$target}
 
-                (( stage )) && local src=$i dst=$target || local src=$target dst=$i
+                [[ $tentry = *+/* ]] || {
+                    [[ $($auth stat -c %F "$oentry") = directory ]] && tentry=${tentry%+}
+                    (( stage )) && src=$oentry dst=$tentry || src=$tentry dst=$oentry
 
-                $auth test -d "$src" && {
-                    $auth rm -rf "$dst"
-                    mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
-                    $auth cp -a "$src/." "$dst"
-                :;} || atlas .echo i1 "couldn't read $src"
-            :;} || {
-                $auth find "$i" | while IFS= read -r oentry
-                do
-                    tentry=${oentry/$i/$target}
-
-                    (( stage )) && sentry=$oentry dentry=$tentry || sentry=$tentry dentry=$oentry
-
-                    $auth test -e "$sentry" -o -L "$sentry" && {
-                        $auth test -d "$sentry" && {
-                            $auth test -d "$dentry" || $auth rm -f "$dentry"
-                            mkdir -p "$dentry" 2>/dev/null || $auth mkdir -p "$dentry"
-                            $auth chmod --reference="$sentry" "$dentry"
-                            $auth chown --reference="$sentry" "$dentry"
+                    $auth stat "$src" &>/dev/null && {
+                        [[ $($auth stat -c %F "$src") = directory && ! $oentry = *+ ]] && {
+                            [[ $($auth stat -c %F "$dst" 2>/dev/null) = directory ]] || $auth rm -f "$dst"
+                            mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
+                            $auth chmod --reference="$src" "$dst"
+                            $auth chown --reference="$src" "$dst"
                         :;} || {
-                            $auth rm -f "$dentry"
-                            $auth cp -a "$sentry" "$dentry"
+                            [[ ! $($auth stat -c %F "$src") = directory ]] || mkdir -p "${dst%/*}" 2>/dev/null || $auth mkdir -p "${dst%/*}"
+                            $auth rm -rf "$dst"
+                            $auth cp -a "$src" "$dst"
                         }
-                    :;} || atlas .echo i1 "couldn't read $sentry"
-                done
-            }
+                    :;} || atlas .echo i1 "couldn't read $src"
+                }
+            done
         done
 
         atlas .tty 0
