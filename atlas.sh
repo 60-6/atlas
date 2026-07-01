@@ -368,7 +368,7 @@ atlas() {
                             $auth chmod --reference="$src" "$dst"
                             $auth chown --reference="$src" "$dst"
                         :;} || {
-                            [[ ! $($auth stat -c %F "$src") = directory ]] || mkdir -p "${dst%/*}" 2>/dev/null || $auth mkdir -p "${dst%/*}"
+                            [[ ! ${dst%/*} ]] || mkdir -p "${dst%/*}" 2>/dev/null || $auth mkdir -p "${dst%/*}"
                             $auth rm -rf "$dst"
                             $auth cp -a "$src" "$dst"
                         }
