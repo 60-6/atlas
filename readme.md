@@ -4,39 +4,40 @@ atlas is a tool for arch linux that lets you view, declare, and maintain your sy
 
 it has no dependencies and it's read-only by default
 
-you can use atlas by pasting 'atlas.sh' into '~/.bashrc' or sourcing it
+you can use atlas by pasting the code in 'atlas.sh' into '~/.bashrc' or sourcing it
 
 see 'atlas ?' for syntax
 
 ## extra information
 
-'atlas d' shows you the package differences between your current system and the saved state
+you can use atlas to declaratively manage your system using 'generations', these generations live in '~/atlas'
 
-'atlas s' creates an 'atlas' folder in your home directory, it saves your system packages and your custom overwrites
-
-'atlas g' generates your system from atlas's save directory, it syncs your system packages according to the saved state and applies your overwrites
-
-you can specify different save directories by passing a second argument
+the default generation is '~/atlas/0', but you can specify different paths by passing a second argument
 
 ex:
 
-* 'atlas d x' diffs against '~/atlas/x'
-* 'atlas s x' saves to '~/atlas/x'
-* 'atlas g x' generates from '~/atlas/x'
+* 'atlas <operations> 1' save directory maps to '~/atlas/1'
 
-inside atlas's save directory, you'll find a 'supersede' directory where you can create 'overwrites'
+these generations consist of 2 files that contain your system packages and a 'supersede' directory
 
-name each overwrite directory in supersede after its destination directory, use '@' instead of '~' and ':' instead of '/'
+inside the supersede directory, you can create 'overwrites', which can save and generate any files or directories you specify
+
+name each overwrite directory in supersede after its target directory, use '@' instead of '~' and ':' instead of '/'
 
 adding '+' to the end of a directory name fully syncs and replaces the entire directory and its contents
 
 ex:
 
-* '<save_directory>/supersede/@:.config/kitty/kitty.conf' maps to '~/.config/kitty/kitty.conf'
-* '<save_directory>/supersede/@:.config+' maps to your entire '~/.config' directory
+* '<generation>/supersede/@:.config/kitty/kitty.conf' maps to '~/.config/kitty/kitty.conf'
+* '<generation>/supersede/@:.config+' maps to your entire '~/.config' directory
 
-'atlas s' can sync overwrite entries from your system, use it after creating an overwrite to handle permissions automatically
+'atlas s' creates a generation where it saves your system packages and syncs overwrite entries from your system, use it after creating an overwrite to handle permissions automatically
 
+'atlas g' generates your system from a generation, it syncs your system packages according to the saved state and applies your overwrites
+
+'atlas d' shows you the package differences between your current system and a generation
+
+'atlas l' links a generation from anywhere on your system to the atlas directory by copying it as a new generation
 
 ---
 
