@@ -167,7 +167,7 @@ atlas() {
 
         [[ $REPLY ]] && {
             mkdir -p "$save"
-            cp -a "$REPLY/." "$save"
+            cp -a "$REPLY/." "$save" && atlas .echo i1 "linked to $save"
         }
 
     }
