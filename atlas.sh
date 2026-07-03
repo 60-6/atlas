@@ -223,7 +223,7 @@ atlas() {
                 yes | $auth pacman -Scc &>/dev/null
                 atlas .tty 0
                 local csized=$(( csize - $(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1) ))
-                atlas .echo a0 "cleared: $(numfmt --to=iec "$csized")"
+                atlas .echo i1 "cleared: $(numfmt --to=iec "$csized")"
             }
         :;} || atlas .echo i1 "cache is empty"
 
