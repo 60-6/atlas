@@ -16,7 +16,7 @@ the default generation is '~/atlas/0', but you can specify different paths by pa
 
 ex:
 
-* 'atlas <operations> 1' save directory maps to '~/atlas/1'
+* 'atlas {operations} 1' save directory maps to '~/atlas/1'
 
 these generations consist of 2 files that contain your system packages and a 'supersede' directory
 
@@ -28,8 +28,8 @@ adding '+' to the end of a directory name fully syncs and replaces the entire di
 
 ex:
 
-* '<generation>/supersede/@:.config/kitty/kitty.conf' maps to '~/.config/kitty/kitty.conf'
-* '<generation>/supersede/@:.config+' maps to your entire '~/.config' directory
+* '{generation}/supersede/@:.config/kitty/kitty.conf' maps to '~/.config/kitty/kitty.conf'
+* '{generation}/supersede/@:.config+' maps to your entire '~/.config' directory
 
 'atlas s' creates a generation where it saves your system packages and syncs overwrite entries from your system, use it after creating an overwrite to handle permissions automatically
 
