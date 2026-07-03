@@ -6,7 +6,7 @@ atlas() {
 
     [[ $code = samsara ]] || {
 
-        local cmds=$1 code=samsara auth=$(type -P sudo || type -P doas) save=$HOME/atlas/$2
+        local cmds=$1 code=samsara auth=$(type -P sudo || type -P doas) save=$HOME/atlas/${2:-0}
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[3G' n=$'\n' r=$'\r'
         local root appnames apps orphans scanned
         local -A async lineage modified null
@@ -15,7 +15,7 @@ atlas() {
 
         [[ $cmds ]] || cmds+=ra
 
-        [[ ${cmds//[raiducsg]} ]] && {
+        [[ ${cmds//[raidsgluc]} ]] && {
             [[ $cmds = \? ]] && {
                 atlas .echo a0 "atlas syntax"
                 echo " ╭───────────────────────────╮"
@@ -25,6 +25,7 @@ atlas() {
                 echo " │ d  ·  view difference     │"
                 echo " │ s  ·  save system         │"
                 echo " │ g  ·  generate system     │"
+                echo " │ l  ·  link generation     │"
                 echo " │ u  ·  upgrade             │"
                 echo " │ c  ·  cleanup             │"
                 echo " ╰───────────────────────────╯$n"
@@ -114,7 +115,7 @@ atlas() {
         local overwrites=( "$save/supersede"/*/ )
 
         [[ -d $overwrites ]] && {
-            atlas .echo q1 "sync ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")?"
+            atlas .echo q1 "sync ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")? {${bold}y$reset/n}"
             [[ ${REPLY,} = n ]] || atlas .overwrite 0
         }
 
@@ -125,8 +126,7 @@ atlas() {
     [[ $1 = :g ]] && {
 
         [[ -d $save ]] && {
-            atlas .echo i1 "i hope you understand that this is risky"
-            atlas .echo q0 "set up aur and flatpak if you need, proceed?"
+            atlas .echo q0 "set up aur and flatpak if you need, proceed? $red{y/${bold}n$reset$red}$reset"
 
             [[ ${REPLY,} = y ]] && {
                 atlas .tty 1
@@ -151,13 +151,24 @@ atlas() {
                 local overwrites=( "$save/supersede"/*/ )
 
                 [[ -d $overwrites ]] && {
-                    atlas .echo q1 "apply ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")?"
+                    atlas .echo q1 "apply ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")? {${bold}y$reset/n}"
                     [[ ${REPLY,} = n ]] || atlas .overwrite 1
                 }
 
                 atlas .echo a0 "all done, make sure there weren't any errors"
             }
         :;} || atlas .echo i0 "you forgot to save..."
+
+    }
+
+    [[ $1 = :l ]] && {
+
+        atlas .echo q1 "enter the generation path you want to link:"
+
+        [[ $REPLY ]] && {
+            mkdir -p "$save"
+            cp -a "$REPLY/." "$save"
+        }
 
     }
 
@@ -185,10 +196,10 @@ atlas() {
         [[ $orphans ]] && {
             echo "$red${bold}orphans (${#orphans[@]})$reset"
             atlas .render orphans null "$red"
-            atlas .echo q1 "proceed with removal?"
+            atlas .echo q1 "proceed with removal? {${bold}y$reset/n}"
 
             [[ ${REPLY,} = n ]] && {
-                atlas .echo q1 "mark explicit instead?"
+                atlas .echo q1 "mark explicit instead? {${bold}y$reset/n}"
 
                 [[ ${REPLY,} = n ]] || {
                     atlas .tty 1
@@ -209,7 +220,7 @@ atlas() {
         local csize=$(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)
 
         (( csize )) && {
-            atlas .echo q1 "clear cache ($(numfmt --to=iec "$csize"))?"
+            atlas .echo q1 "clear cache ($(numfmt --to=iec "$csize"))? {${bold}y$reset/n}"
 
             [[ ${REPLY,} = n ]] || {
                 atlas .tty 1
@@ -221,7 +232,7 @@ atlas() {
         :;} || atlas .echo i1 "cache is empty"
 
         [[ $(type -P flatpak) ]] && {
-            atlas .echo i1 "removing unused runtimes..."
+            atlas .echo i1 "scanning unused runtimes..."
             flatpak remove --unused
             echo
         }
@@ -280,21 +291,21 @@ atlas() {
         }
 
         [[ $op = q0 ]] && {
-            echo -n "$red⚠︎ $say {y/${bold}n$reset$red}$reset "
+            echo -n "$red⚠︎ $say$reset "
             atlas .emit w
             atlas .tty 1
-            read -s -n 1
+            read
             atlas .tty 0
-            echo -n "$r$clear"
+            echo
         }
 
         [[ $op = q1 ]] && {
-            echo -n "✧ $say {${bold}y$reset/n} "
+            echo -n "✧ $say "
             atlas .emit q
             atlas .tty 1
-            read -s -n 1
+            read
             atlas .tty 0
-            echo -n "$r$clear"
+            echo
         }
 
     }
@@ -432,7 +443,7 @@ atlas() {
         modified[f1]=$(stat -c %Y /var/lib/flatpak 2>/dev/null)
 
         [[ ${modified[l0]} = ${modified[l1]} ]] || {
-            scanned=${scanned//[rlo]}
+            scanned=${scanned//[reo]}
             modified[l0]=${modified[l1]}
         }
 
@@ -441,7 +452,7 @@ atlas() {
             modified[f0]=${modified[f1]}
         }
 
-        ops=${ops/r/rl}
+        ops=${ops/r/re}
         ops=${ops/[ds]/ri}
         ops=${ops/c/o}
         ops=${ops//[$scanned]}
@@ -455,7 +466,7 @@ atlas() {
                 root=( $(pacman -Qqtte) )
             }
 
-            [[ $ops =~ l ]] && {
+            [[ $ops =~ e ]] && {
                 atlas .echo a1 "extracting lineage..."
                 atlas .extract
             }
