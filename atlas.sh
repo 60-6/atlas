@@ -15,16 +15,16 @@ atlas() {
 
         [[ $cmds ]] || cmds+=ra
 
-        [[ ${cmds//[raidsgluc]} ]] && {
+        [[ ${cmds//[raisgdluc]} ]] && {
             [[ $cmds = \? ]] && {
                 atlas .echo a0 "atlas syntax"
                 echo " ╭───────────────────────────╮"
                 echo " │ r  ·  view root           │"
                 echo " │ a  ·  view apps           │"
                 echo " │ i  ·  view app ids        │"
-                echo " │ d  ·  view difference     │"
                 echo " │ s  ·  save system         │"
                 echo " │ g  ·  generate system     │"
+                echo " │ d  ·  view difference     │"
                 echo " │ l  ·  link generation     │"
                 echo " │ u  ·  upgrade             │"
                 echo " │ c  ·  cleanup             │"
@@ -66,43 +66,15 @@ atlas() {
 
     [[ $1 = :a ]] && {
 
-        [[ $appnames ]] && {
-            echo "${bold}apps (${#appnames[@]})$reset"
-            atlas .render appnames null
-        :;} || atlas .echo i1 "apps: none"
+        echo "${bold}apps (${#appnames[@]})$reset"
+        atlas .render appnames null
 
     }
 
     [[ $1 = :i ]] && {
 
-        [[ $apps ]] && {
-            echo "${bold}app ids (${#apps[@]})$reset"
-            atlas .render apps null
-        :;} || atlas .echo i1 "app ids: none"
-
-    }
-
-    [[ $1 = :d ]] && {
-
-        [[ -d $save ]] && {
-            local i
-            local -A delta
-
-            for i in root apps
-            do
-                local -n xarr=$i
-
-                delta[${i}0]=$(grep -vxFf <(printf "%s$n" ${xarr[@]}) "$save/$i")
-                delta[${i}1]=$(grep -vxFf "$save/$i" <(printf "%s$n" ${xarr[@]}))
-
-                [[ ${delta[${i}0]}${delta[${i}1]} ]] && {
-                    atlas .echo a0 "$i difference"
-                    [[ ${delta[${i}0]} ]] && printf " $dim⊖ %s$reset$n" ${delta[${i}0]}
-                    [[ ${delta[${i}1]} ]] && printf " ⊕ %s$n" ${delta[${i}1]}
-                    echo
-                :;} || [[ ! -f $save/$i ]] || atlas .echo i1 "$i difference: none"
-            done 2>/dev/null
-        :;} || atlas .echo i0 "you forgot to save silly"
+        echo "${bold}app ids (${#apps[@]})$reset"
+        atlas .render apps null
 
     }
 
@@ -158,6 +130,30 @@ atlas() {
                 atlas .echo a0 "all done, make sure there weren't any errors"
             }
         :;} || atlas .echo i0 "you forgot to save..."
+
+    }
+
+    [[ $1 = :d ]] && {
+
+        [[ -d $save ]] && {
+            local i
+            local -A delta
+
+            for i in root apps
+            do
+                local -n xarr=$i
+
+                delta[${i}0]=$(grep -vxFf <(printf "%s$n" ${xarr[@]}) "$save/$i")
+                delta[${i}1]=$(grep -vxFf "$save/$i" <(printf "%s$n" ${xarr[@]}))
+
+                [[ ${delta[${i}0]}${delta[${i}1]} ]] && {
+                    atlas .echo a0 "$i difference"
+                    [[ ${delta[${i}0]} ]] && printf " $dim⊖ %s$reset$n" ${delta[${i}0]}
+                    [[ ${delta[${i}1]} ]] && printf " ⊕ %s$n" ${delta[${i}1]}
+                    echo
+                :;} || [[ ! -f $save/$i ]] || atlas .echo i1 "$i difference: none"
+            done 2>/dev/null
+        :;} || atlas .echo i0 "you forgot to save silly"
 
     }
 
