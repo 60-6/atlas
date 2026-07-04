@@ -8,7 +8,7 @@ atlas() {
 
         local cmds=$1 code=samsara auth=$(type -P sudo || type -P doas) save=$HOME/atlas/${2:-0}
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' origin=$'\e[3G' n=$'\n' r=$'\r'
-        local root appnames apps orphans scanned
+        local root appnames apps orphans scanned REPLY
         local -A async lineage modified null
 
         echo
@@ -162,8 +162,11 @@ atlas() {
         atlas .echo q1 "enter the generation path you want to link:"
 
         [[ $REPLY ]] && {
-            mkdir -p "$save"
-            cp -a "$REPLY/." "$save" && atlas .echo i1 "linked to $save"
+            $auth stat "$REPLY" &>/dev/null && {
+                mkdir -p "${save%/*}"
+                $auth rm -rf "$save"
+                $auth cp -a "$REPLY" "$save" && atlas .echo i1 "linked to $save"
+            } || atlas .echo i0 "invalid path"
         }
 
     }
