@@ -84,9 +84,9 @@ atlas() {
         printf "%s$n" ${root[@]} > "$save/root"
         printf "%s$n" ${apps[@]} > "$save/apps"
 
-        local overwrites=( "$save/supersede"/*/ )
+        local overwrites=( "$save/supersede/"* )
 
-        [[ -d $overwrites ]] && {
+        stat "$overwrites" &>/dev/null && {
             atlas .echo q1 "sync ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")? {${bold}y$reset/n}"
             [[ ${REPLY,} = n ]] || atlas .overwrite 0
         }
@@ -120,9 +120,9 @@ atlas() {
 
                 atlas .tty 0
 
-                local overwrites=( "$save/supersede"/*/ )
+                local overwrites=( "$save/supersede/"* )
 
-                [[ -d $overwrites ]] && {
+                stat "$overwrites" &>/dev/null && {
                     atlas .echo q1 "apply ${#overwrites[@]} $((( ${#overwrites[@]} - 1 )) && echo "overwrites" || echo "overwrite")? {${bold}y$reset/n}"
                     [[ ${REPLY,} = n ]] || atlas .overwrite 1
                 }
@@ -354,7 +354,7 @@ atlas() {
 
         atlas .tty 1
 
-        for i in "${overwrites[@]%/}"
+        for i in "${overwrites[@]}"
         do
             target=${i##*/}
             target=${target//:/\/}
