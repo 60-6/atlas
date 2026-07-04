@@ -103,7 +103,7 @@ atlas() {
             [[ ${REPLY,} = y ]] && {
                 atlas .tty 1
 
-                [[ -s $save/root ]] && $(type -P yay || type -P paru || echo "$auth pacman") -S --needed $(< "$save/root") && {
+                $(type -P yay || type -P paru || echo "$auth pacman") -S --needed $(< "$save/root") && {
                     $auth pacman -D --asdeps $(pacman -Qqe)
                     $auth pacman -D --asexplicit $(< "$save/root")
                     local rdelta=$(pacman -Qqttd)
@@ -111,7 +111,7 @@ atlas() {
                     echo
                 }
 
-                [[ -s $save/apps ]] && flatpak install $(< "$save/apps") && {
+                [[ $(< "$save/apps") ]] && flatpak install $(< "$save/apps") && {
                     local adelta=$(grep -vxFf "$save/apps" <(flatpak list --app --columns=app))
                     [[ $adelta ]] && flatpak remove $adelta
                     flatpak remove --unused
