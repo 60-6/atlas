@@ -37,7 +37,7 @@ ex:
 
 'atlas d' shows you the package differences between your current system and a generation
 
-'atlas l' links a generation from anywhere on your system to the atlas directory by copying it as a new generation
+'atlas e' exports a generation from anywhere on your system
 
 ---
 
