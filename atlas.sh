@@ -148,18 +148,15 @@ atlas() {
         atlas .echo q2 "which generation path do you want to export?"
 
         [[ $REPLY ]] && {
-            local src=$(realpath -m "$REPLY")
+            local src=$REPLY
 
             $auth stat "$src" &>/dev/null && {
                 atlas .echo q2 "where do you want to export it?"
 
                 [[ $REPLY ]] && {
-                    local dst=$(realpath -m "$REPLY")
-
-                    [[ ! $src/ = "${dst%/}/"* && ! $dst = "${src%/}/"* ]] && {
-                        [[ ! ${dst%/*} ]] || mkdir -p "${dst%/*}" 2>/dev/null || $auth mkdir -p "${dst%/*}"
-                        $auth cp -a "$src" "$dst" && atlas .echo i2 "exported successfully"
-                    :;} || atlas .echo i0 "invalid path, recursion detected"
+                    local dst=$REPLY
+                    mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
+                    $auth cp -a "$src/." "$dst" && atlas .echo i2 "exported successfully"
                 }
             :;} || atlas .echo i0 "invalid path"
         }
@@ -204,12 +201,11 @@ atlas() {
         local csize=$(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)
 
         (( csize )) && {
-            atlas .echo q1 "clear cache ($(numfmt --to=iec "$csize"))?"
+            atlas .echo q1 "clear cache ($(numfmt --to=iec $csize))?"
 
             [[ ${REPLY,} = n ]] || {
                 yes | $auth pacman -Scc &>/dev/null
-                local csized=$(( csize - $(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1) ))
-                atlas .echo i2 "cleared: $(numfmt --to=iec "$csized")"
+                atlas .echo i2 "cache cleared"
             }
         :;} || atlas .echo i2 "cache is empty"
 
@@ -343,7 +339,7 @@ atlas() {
         do
             target=${i##*/}
             target=${target//:/\/}
-            target=$(realpath -m "${target/#@/$HOME}")
+            target=$(realpath -sm "${target/#@/$HOME}")
 
             $auth find "$i" | while IFS= read -r oentry
             do
