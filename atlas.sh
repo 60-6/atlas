@@ -8,7 +8,7 @@ atlas() {
 
         local cmds=${1:-ra} save=$(realpath -m "$HOME/atlas/${2:-0}") auth=$(type -P sudo || type -P doas) code=samsara
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' n=$'\n' r=$'\r'
-        local root appnames apps orphans scanned REPLY
+        local appnames apps i orphans REPLY root scanned
         local -A async lineage modified null
 
         echo
@@ -31,7 +31,6 @@ atlas() {
         :;} || {
             atlas .signal 1
             atlas .scan $cmds
-            local i
 
             for i in $(fold -w1 <<< $cmds)
             do
@@ -210,6 +209,7 @@ atlas() {
         :;} || atlas .echo i2 "cache is empty"
 
         [[ $(type -P flatpak) ]] && {
+            atlas .echo i2 "scanning unused runtimes..."
             flatpak remove --unused
             echo
         }
@@ -219,20 +219,6 @@ atlas() {
     }
 
 #  ├── core ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-
-    [[ $1 = .tty ]] && {
-
-        local stage=$2
-
-        (( stage )) && {
-            stty echo </dev/tty
-            echo -n "$show"
-        :;} || {
-            stty -echo
-            echo -n "$hide"
-        }
-
-    }
 
     [[ $1 = .cycle ]] && {
 
@@ -264,7 +250,7 @@ atlas() {
         }
 
         [[ $op = q0 ]] && {
-            echo -n "$red⚠︎ $say {y/${bold}n$reset$red}$reset "
+            echo -n "$red⚠︎ $say {y|${bold}n$reset$red}$reset "
             atlas .emit w
             atlas .tty 1
             read -sn 1
@@ -272,7 +258,7 @@ atlas() {
         }
 
         [[ $op = q1 ]] && {
-            echo -n "✧ $say {${bold}y$reset/n} "
+            echo -n "✧ $say {${bold}y$reset|n} "
             atlas .emit i
             atlas .tty 1
             read -sn 1
@@ -303,8 +289,8 @@ atlas() {
 
     [[ $1 = .extract ]] && {
 
-        local pkg opt
         lineage=()
+        local pkg opt
 
         while read pkg opt
         do [[ " ${root[@]} " =~ " $opt " ]] && lineage[$pkg]+=" $opt "
@@ -316,13 +302,12 @@ atlas() {
             }
 
             proceed = 0
-
-            /^Name/ { pkg = $NF }
+            /^Name/ { pkg=$NF }
 
             /^Optional Deps/ {
                 gsub(/^Optional Deps *: *|:.*/, "")
                 print pkg, $0
-                proceed = 1
+                proceed=1
             }
         ')
 
@@ -332,7 +317,7 @@ atlas() {
 
     [[ $1 = .overwrite ]] && {
 
-        local stage=$2 i target
+        local stage=$2 i target oentry
         atlas .tty 1
 
         for i in "${overwrites[@]}"
@@ -341,13 +326,13 @@ atlas() {
             target=${target//:/\/}
             target=$(realpath -sm "${target/#@/$HOME}")
 
-            $auth find "$i" | while IFS= read -r oentry
+            while IFS= read -rd "" oentry
             do
-                tentry=${oentry/"$i"/$target}
+                local tentry=${oentry/"$i"/$target}
 
                 [[ $tentry = *+/* ]] || {
                     [[ $($auth stat -c %F "$oentry") = directory ]] && tentry=${tentry%+}
-                    (( stage )) && src=$oentry dst=$tentry || src=$tentry dst=$oentry
+                    (( stage )) && local src=$oentry dst=$tentry || local src=$tentry dst=$oentry
 
                     $auth stat "$src" &>/dev/null && {
                         [[ $($auth stat -c %F "$src") = directory && ! $oentry = *+ ]] && {
@@ -364,7 +349,7 @@ atlas() {
                         }
                     :;} || atlas .echo i2 "couldn't read $src"
                 }
-            done
+            done < <($auth find "$i" -print0)
         done
 
     }
@@ -462,6 +447,20 @@ atlas() {
         :;} || {
             trap - 2 15
             atlas .tty 1
+        }
+
+    }
+
+    [[ $1 = .tty ]] && {
+
+        local stage=$2
+
+        (( stage )) && {
+            stty echo </dev/tty
+            echo -n "$show"
+        :;} || {
+            stty -echo
+            echo -n "$hide"
         }
 
     }
