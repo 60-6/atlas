@@ -10,7 +10,6 @@ atlas() {
         local bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' reset=$'\e[m' hide=$'\e[?25l' show=$'\e[?25h' clear=$'\e[K' n=$'\n' r=$'\r'
         local appnames apps i orphans REPLY root scanned
         local -A async lineage modified null
-
         echo
 
         [[ ${cmds//[raisgdeuc]} ]] && {
@@ -28,19 +27,20 @@ atlas() {
                 echo " │ c  ·  cleanup             │"
                 echo " ╰───────────────────────────╯$n"
             :;} || atlas .echo i0 "not sure what you mean, see 'atlas ?' for syntax"
-        :;} || {
-            atlas .signal 1
-            atlas .scan $cmds
 
-            for i in $(fold -w1 <<< $cmds)
-            do
-                atlas .scan $i
-                atlas :$i
-            done
-
-            atlas .signal 0
+            return
         }
 
+        atlas .signal 1
+        atlas .scan $cmds
+
+        for i in $(fold -w1 <<< $cmds)
+        do
+            atlas .scan $i
+            atlas :$i
+        done
+
+        atlas .signal 0
         echo
 
     }
@@ -67,10 +67,10 @@ atlas() {
 
     [[ $1 = :s ]] && {
 
+        local overwrites=( "$save/supersede/"* )
         mkdir -p "$save/supersede"
         printf "%s$n" ${root[@]} > "$save/root"
         printf "%s$n" ${apps[@]} > "$save/apps"
-        local overwrites=( "$save/supersede/"* )
 
         stat "$overwrites" &>/dev/null && {
             atlas .echo q1 "sync overwrites?"
@@ -83,6 +83,8 @@ atlas() {
     }
 
     [[ $1 = :g ]] && {
+
+        local overwrites=( "$save/supersede/"* )
 
         [[ -d $save ]] && {
             atlas .echo q0 "set up aur and flatpak if you need, proceed?"
@@ -104,8 +106,6 @@ atlas() {
                     echo
                 }
 
-                local overwrites=( "$save/supersede/"* )
-
                 stat "$overwrites" &>/dev/null && {
                     atlas .echo q1 "apply overwrites?"
                     [[ ${REPLY,} = n ]] || atlas .overwrite 1
@@ -121,10 +121,10 @@ atlas() {
 
     [[ $1 = :d ]] && {
 
-        [[ -d $save ]] && {
-            local i
-            local -A delta
+        local i
+        local -A delta
 
+        [[ -d $save ]] && {
             for i in root apps
             do
                 local -n xarr=$i
@@ -166,17 +166,19 @@ atlas() {
 
     [[ $1 = :u ]] && {
 
+        local version=$(curl -fsS https://raw.githubusercontent.com/60-6/atlas/refs/heads/0/version)
         atlas .tty 1
         $(type -P yay || type -P paru || echo "$auth pacman") -Syu
         [[ $(type -P flatpak) ]] && flatpak update
         echo
         atlas .tty 0
-        local version=$(curl -fsS https://raw.githubusercontent.com/60-6/atlas/refs/heads/0/version)
         [[ $version && ! $code = $version ]] && atlas .echo i1 "a new version of atlas is available if you care, github.com/60-6/atlas"
 
     }
 
     [[ $1 = :c ]] && {
+
+        local cache
 
         [[ $orphans ]] && {
             atlas .render "orphans" orphans null "$red"
@@ -195,7 +197,6 @@ atlas() {
             }
         :;} || atlas .echo i2 "no orphans to remove"
 
-        local cache
         mapfile -t cache < <(pacman-conf CacheDir)
         local csize=$(du -bc "${cache[@]}" 2>/dev/null | tail -1 | cut -f1)
 
@@ -289,8 +290,8 @@ atlas() {
 
     [[ $1 = .extract ]] && {
 
-        lineage=()
         local pkg opt
+        lineage=()
 
         while read pkg opt
         do [[ " ${root[@]} " =~ " $opt " ]] && lineage[$pkg]+=" $opt "
