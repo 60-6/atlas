@@ -431,6 +431,7 @@ atlas() {
             read -t .6
             atlas .pulse 0
         } 2>/dev/null
+        
     }
 
     [[ $1 = .signal ]] && {
