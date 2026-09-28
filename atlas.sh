@@ -13,35 +13,20 @@ atlas() {
         echo
 
         [[ ${cmds//[raisgdeuc]} ]] && {
-            [[ $cmds = \? ]] && {
-                atlas .echo i1 "atlas syntax"
-                echo " ╭───────────────────────────╮"
-                echo " │ r  ·  view root           │"
-                echo " │ a  ·  view apps           │"
-                echo " │ i  ·  view app ids        │"
-                echo " │ s  ·  save system         │"
-                echo " │ g  ·  generate system     │"
-                echo " │ d  ·  view difference     │"
-                echo " │ e  ·  export generation   │"
-                echo " │ u  ·  upgrade             │"
-                echo " │ c  ·  cleanup             │"
-                echo " ╰───────────────────────────╯$n"
-            :;} || atlas .echo i0 "not sure what you mean, see 'atlas ?' for syntax"
+            atlas .echo i0 "not sure what you mean"
+        :;} || {
+            atlas .signal 1
+            atlas .scan $cmds
 
-            return
+            for i in $(fold -w1 <<< $cmds)
+            do
+                atlas .scan $i
+                atlas :$i
+            done
+
+            atlas .signal 0
+            echo
         }
-
-        atlas .signal 1
-        atlas .scan $cmds
-
-        for i in $(fold -w1 <<< $cmds)
-        do
-            atlas .scan $i
-            atlas :$i
-        done
-
-        atlas .signal 0
-        echo
 
     }
 
@@ -172,7 +157,7 @@ atlas() {
         [[ $(type -P flatpak) ]] && flatpak update
         echo
         atlas .tty 0
-        [[ $version && ! $code = $version ]] && atlas .echo i1 "a new version of atlas is available if you care, github.com/60-6/atlas"
+        [[ $version && ! $code = $version ]] && atlas .echo i1 "a new version of atlas is available, github.com/60-6/atlas"
 
     }
 
@@ -325,11 +310,11 @@ atlas() {
         do
             target=${i##*/}
             target=${target//:/\/}
-            target=$(realpath -sm "${target/#@/$HOME}")
+            target=$(realpath -sm "${target/#@/"$HOME"}")
 
             while IFS= read -rd "" oentry
             do
-                local tentry=${oentry/"$i"/$target}
+                local tentry=${oentry/"$i"/"$target"}
 
                 [[ $tentry = *+/* ]] || {
                     [[ $($auth stat -c %F "$oentry") = directory ]] && tentry=${tentry%+}
@@ -431,7 +416,7 @@ atlas() {
             read -t .6
             atlas .pulse 0
         } 2>/dev/null
-        
+
     }
 
     [[ $1 = .signal ]] && {
