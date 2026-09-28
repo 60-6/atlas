@@ -14,19 +14,20 @@ atlas() {
 
         [[ ${cmds//[raisgdeuc]} ]] && {
             atlas .echo i0 "not sure what you mean"
-        :;} || {
-            atlas .signal 1
-            atlas .scan $cmds
-
-            for i in $(fold -w1 <<< $cmds)
-            do
-                atlas .scan $i
-                atlas :$i
-            done
-
-            atlas .signal 0
-            echo
+            return
         }
+        
+        atlas .signal 1
+        atlas .scan $cmds
+
+        for i in $(fold -w1 <<< $cmds)
+        do
+            atlas .scan $i
+            atlas :$i
+        done
+
+        atlas .signal 0
+        echo
 
     }
 
