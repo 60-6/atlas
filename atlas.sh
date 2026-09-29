@@ -16,7 +16,7 @@ atlas() {
             atlas .echo i0 "not sure what you mean"
             return
         }
-        
+
         atlas .signal 1
         atlas .scan $cmds
 
@@ -133,13 +133,13 @@ atlas() {
         atlas .echo q2 "which generation path do you want to export?"
 
         [[ $REPLY ]] && {
-            local src=$REPLY
+            local src=${REPLY/#~/"$HOME"}
 
             $auth stat "$src" &>/dev/null && {
                 atlas .echo q2 "where do you want to export it?"
 
                 [[ $REPLY ]] && {
-                    local dst=$REPLY
+                    local dst=${REPLY/#~/"$HOME"}
                     mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
                     $auth cp -a "$src/." "$dst" && atlas .echo i2 "exported successfully"
                 }
@@ -311,7 +311,7 @@ atlas() {
         do
             target=${i##*/}
             target=${target//:/\/}
-            target=$(realpath -sm "${target/#@/"$HOME"}")
+            target=$(realpath -sm "${target/#~/"$HOME"}")
 
             while IFS= read -rd "" oentry
             do
