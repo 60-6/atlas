@@ -141,7 +141,7 @@ atlas() {
                 [[ $REPLY ]] && {
                     local dst=${REPLY/#~/"$HOME"}
                     mkdir -p "$dst" 2>/dev/null || $auth mkdir -p "$dst"
-                    $auth cp -a "$src/." "$dst" && atlas .echo i2 "exported successfully"
+                    $auth cp -aT "$src" "$dst" && atlas .echo i2 "exported successfully"
                 }
             :;} || atlas .echo i0 "invalid path"
         }
@@ -329,9 +329,9 @@ atlas() {
                             $auth chown --reference="$src" "$dst"
                         :;} || {
                             [[ ! $oentry = "${tentry%/}/"* ]] && {
-                                [[ ! ${dst%/*} ]] || mkdir -p "${dst%/*}" 2>/dev/null || $auth mkdir -p "${dst%/*}"
-                                $auth rm -rf "$dst"
-                                $auth cp -a "$src" "$dst"
+                                mkdir -p "${dst%/*}/" 2>/dev/null || $auth mkdir -p "${dst%/*}/"
+                                $auth rm -rf "$dst" 2>/dev/null
+                                $auth cp -aT "$src" "$dst"
                             :;} || atlas .echo i0 "recursion detected: $oentry"
                         }
                     :;} || atlas .echo i2 "couldn't read $src"
